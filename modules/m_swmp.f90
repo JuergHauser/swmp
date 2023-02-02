@@ -31,8 +31,6 @@ module swmp
 
 contains
 
-! https://community.intel.com/t5/Intel-Fortran-Compiler/Passing-by-reference-a-Python-string-to-Fortran-function/m-p/1297543
-
 subroutine read_conf(fn_ptr,fn_ptr_length)bind(c,name="rat_read_conf")
     type(c_ptr), value::  fn_ptr
     integer(c_int),value :: fn_ptr_length
@@ -45,8 +43,6 @@ subroutine read_conf(fn_ptr,fn_ptr_length)bind(c,name="rat_read_conf")
 
     call c_f_pointer(fn_ptr, fn_str)
     call read_rat_conf(fn_str,sous,recs,recmode,wafc,vmod,conf)
-
-
 end subroutine read_conf
 
 
@@ -172,6 +168,15 @@ end subroutine forward
     conf%wt%dt=dt
   end subroutine set_dt
 
+   ! ofn_arrivals
+   subroutine get_arrival_prediction_filepath(fn_ptr,fn_ptr_length)bind(c,name="get_arrival_prediction_filepath")
+    type(c_ptr), value::  fn_ptr
+    integer(c_int),value :: fn_ptr_length
+    character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
+    call c_f_pointer(fn_ptr, fn_str)
+    fn_str=conf%ofn_arrivals
+end subroutine get_arrival_prediction_filepath
+
 ! maxit - maximum number of iterations
  subroutine get_maxit(maxit)bind(c,name="get_maxit")
   integer(kind=c_int),intent(out) :: maxit
@@ -200,7 +205,7 @@ end subroutine forward
   subroutine get_model_vector(val,nx,ny,cn)bind(c,name='get_model_vector')
 
     integer(kind=c_int), intent (in) :: nx,ny,cn
-    real(c_float), intent(out) :: val((nx+cn*2)*(ny+cn*2))
+    real(kind=c_float), intent(out) :: val((nx+cn*2)*(ny+cn*2))
 
     integer i,j,k
 
@@ -230,7 +235,6 @@ end subroutine forward
   end subroutine set_model_vector
 
 
-
   subroutine get_model_grid(val,nx,ny,cn)bind(c,name='get_model_grid')
 
     integer(kind=c_int), intent (in) :: nx,ny,cn
@@ -246,10 +250,7 @@ end subroutine forward
 
   end subroutine get_model_grid
 
-
-
   subroutine read_observations(fn_ptr,fn_ptr_length) bind(c,name='read_observations')
-
     type(c_ptr), value::  fn_ptr
     integer(c_int),value :: fn_ptr_length
     character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
@@ -312,10 +313,79 @@ end subroutine get_obervations
 
   end subroutine get_predictions
 
-
-
-
 end module swmp
+
+
+module pred2obs
+
+
+  use my_types
+  use my_functions
+  use m_inout
+    use iso_c_binding
+
+implicit none
+
+
+  type(creobs_conf)       :: conf
+  type(predicted_arrivals) :: pred
+  type(observed_arrivals)  :: obs
+
+
+contains
+subroutine read_conf(fn_ptr,fn_ptr_length)bind(c,name="creobs_read_conf")
+    type(c_ptr), value::  fn_ptr
+    integer(c_int),value :: fn_ptr_length
+    character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
+
+    call c_f_pointer(fn_ptr, fn_str)
+
+    call read_creobs_conf(fn_str,conf)
+
+end subroutine read_conf
+
+subroutine create() bind(c,name="creobs_run")
+
+  integer :: i,j
+
+ ! load necessary files
+  call read_predicted_arrivals(pred,conf%ifn_traveltimes)
+
+  ! copy pred into obs
+  obs%n=pred%n
+  allocate(obs%sou(obs%n))
+  allocate(obs%rec(obs%n))
+  allocate(obs%arn(obs%n))
+  allocate(obs%art(obs%n))
+  allocate(obs%azi(obs%n))
+
+  allocate(obs%unc(obs%n))
+
+  obs%sou=pred%sou
+  obs%rec=pred%rec
+  obs%arn=pred%arn
+  obs%art=pred%art
+  obs%azi=pred%azi
+
+  ! add random nois to the arrivla times
+
+  if (conf%do_ran==1) then
+     do i=1,obs%n
+	obs%art(i)=pred%art(i)+gasdev(conf%rseed)*conf%stdev
+     end do
+  end if
+
+  obs%unc=conf%unc
+
+  call write_observed_arrivals(obs,conf%ofn_traveltimes)
+
+call deallocate_predicted_arrivals(pred)
+call deallocate_observed_arrivals(obs)
+
+
+end subroutine create
+
+end module pred2obs
 
 
 module modgen

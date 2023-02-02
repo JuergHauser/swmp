@@ -32,22 +32,29 @@ contains
   ! subroutines for reading .in files                                               !
   !---------------------------------------------------------------------------------!
 
-  subroutine read_creobs_conf(conf)
+  subroutine read_creobs_conf(ifn_creobs,conf)
     use my_types
     implicit none
-
+    character(len=*) :: ifn_creobs
     type(creobs_conf):: conf
+    character(len=strlen) :: line
 
-    open(unit=input,file='creobs.in',status='old')
+    open(unit=input,file=ifn_creobs,status='old')
     read(input,*) cdum; read(input,*) cdum; read(input,*) cdum
-    read(input,*) conf%ifn_traveltimes
+    read(input,'(a)') line
+     conf%ifn_traveltimes = trim(line(1:index(line,'!')-1))
+
+
     read(input,*) cdum; read(input,*) cdum; read(input,*) cdum
     read(input,*) conf%do_ran
     read(input,*) conf%stdev
     read(input,*) conf%rseed
     read(input,*) conf%unc
     read(input,*) cdum; read(input,*) cdum; read(input,*) cdum
-    read(input,*) conf%ofn_traveltimes
+
+    read(input,'(a)') line
+    conf%ofn_traveltimes = trim(line(1:index(line,'!')-1))
+
     close(input)
   end subroutine read_creobs_conf
 
@@ -762,7 +769,7 @@ end subroutine read_rabgv_conf
     allocate(pred%art(pred%n))
     allocate(pred%azi(pred%n))
     do i=1,pred%n
-       read(input,'(3i8,2f16.8)') pred%sou(i),pred%rec(i),pred%arn(i),pred%art(i),pred%azi(i)
+       read(input,*) pred%sou(i),pred%rec(i),pred%arn(i),pred%art(i),pred%azi(i)
     end do
 
     close (input)

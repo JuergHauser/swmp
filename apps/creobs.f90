@@ -1,6 +1,6 @@
 ! * creobs *
 !
-! This program adds random noise and data covariance information to a set of 
+! This program adds random noise and data covariance information to a set of
 ! travel times.
 !
 !   This file is part of mps.
@@ -34,9 +34,13 @@ program creobs
   type(predicted_arrivals) :: pred
   type(observed_arrivals)  :: obs
   integer :: i,j
+  character(len=strlen)     :: arg
+
+  ! read in the configuration and allocate the relevant structures
+  call get_command_argument(1,arg)
 
   ! load necessary files
-  call read_creobs_conf(conf)
+  call read_creobs_conf(trim(arg),conf)
   call read_predicted_arrivals(pred,conf%ifn_traveltimes)
 
   ! copy pred into obs

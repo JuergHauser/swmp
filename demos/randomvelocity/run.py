@@ -17,3 +17,11 @@ sv.run()
 wt=swmp.WaveFrontTracker()
 wt.read_forward_configuration('input/true_rat.in')
 wt.forward()
+
+og=swmp.ObservationGenerator()
+og.read_configuration('input/creobs.in')
+og.run()
+
+
+
+
