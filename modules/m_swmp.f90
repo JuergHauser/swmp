@@ -1,4 +1,5 @@
-module swmp_rat
+
+module swmp
 
 
   use my_types
@@ -12,8 +13,7 @@ module swmp_rat
 
   use iso_c_binding
 
-    implicit none
-
+  implicit none
 
 ! Data stuctures required for forward problem:
   type(scalar_field_2d)     :: vmod
@@ -25,12 +25,15 @@ module swmp_rat
   type(node),pointer        :: head=>null()
   type(node),pointer        :: tail=>null()
 
+! Data stuctures required for inverse problem:
+  type(observed_arrivals):: obs
+  type(predicted_arrivals):: pred
+
 contains
 
 ! https://community.intel.com/t5/Intel-Fortran-Compiler/Passing-by-reference-a-Python-string-to-Fortran-function/m-p/1297543
 
 subroutine read_conf(fn_ptr,fn_ptr_length)bind(c,name="rat_read_conf")
-    integer(kind=c_int)::cln
     type(c_ptr), value::  fn_ptr
     integer(c_int),value :: fn_ptr_length
     character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
@@ -47,7 +50,7 @@ subroutine read_conf(fn_ptr,fn_ptr_length)bind(c,name="rat_read_conf")
 end subroutine read_conf
 
 
-subroutine raytrace()bind(c,name="rat_run")
+subroutine forward()bind(c,name="forward")
 
  ! counter variables
   integer:: h,i
@@ -153,7 +156,7 @@ end if
   call deallocate_scalar_field_2d(vmod)
   call deallocate_rat_conf(conf)
 
-end subroutine raytrace
+end subroutine forward
 
 
 ! Setter and Getters to set everything from Python
@@ -180,10 +183,142 @@ end subroutine raytrace
     conf%wt%maxit=maxit
   end subroutine set_maxit
 
-end module swmp_rat
+  subroutine get_model_meta_data(x0,y0,nx,ny,dx,dy,cn) bind(c,name='get_model_meta_data')
+    real(kind=c_float),intent(out) :: x0,y0,dx,dy
+    integer(kind=c_int),intent(out) :: nx,ny,cn
+
+    x0=vmod%x0
+    y0=vmod%y0
+    nx=vmod%nx
+    ny=vmod%ny
+    dx=vmod%dx
+    dy=vmod%dy
+    cn=vmod%cn
+
+  end subroutine get_model_meta_data
+
+  subroutine get_model_vector(val,nx,ny,cn)bind(c,name='get_model_vector')
+
+    integer(kind=c_int), intent (in) :: nx,ny,cn
+    real(c_float), intent(out) :: val((nx+cn*2)*(ny+cn*2))
+
+    integer i,j,k
+
+    do i=1,vmod%nx+vmod%cn*2
+       do j=1,vmod%ny+vmod%cn*2
+          call velnod2id(i,j,vmod,k)
+          val(k)=vmod%val(i,j)
+       end do
+    end do
+
+  end subroutine get_model_vector
+
+  subroutine set_model_vector(val,nx,ny,cn)bind(c,name='set_model_vector')
+
+    integer(kind=c_int), intent (in) :: nx,ny,cn
+    real(c_float), intent(in) :: val((nx+cn*2)*(ny+cn*2))
+
+    integer i,j,k
+
+    do i=1,vmod%nx+vmod%cn*2
+       do j=1,vmod%ny+vmod%cn*2
+          call velnod2id(i,j,vmod,k)
+          vmod%val(i,j)=val(k)
+       end do
+    end do
+
+  end subroutine set_model_vector
 
 
-module swmp_gen2dv
+
+  subroutine get_model_grid(val,nx,ny,cn)bind(c,name='get_model_grid')
+
+    integer(kind=c_int), intent (in) :: nx,ny,cn
+    real(c_float), intent(out) :: val((nx+cn*2),(ny+cn*2))
+
+    integer i,j,k
+
+    do i=1,vmod%nx+vmod%cn*2
+       do j=1,vmod%ny+vmod%cn*2
+          val(i,j)=vmod%val(i,j)
+       end do
+    end do
+
+  end subroutine get_model_grid
+
+
+
+  subroutine read_observations(fn_ptr,fn_ptr_length) bind(c,name='read_observations')
+
+    type(c_ptr), value::  fn_ptr
+    integer(c_int),value :: fn_ptr_length
+    character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
+    call c_f_pointer(fn_ptr, fn_str)
+    call read_observed_arrivals(obs,fn_str)
+  end subroutine read_observations
+
+
+
+  subroutine read_predictions(fn_ptr,fn_ptr_length) bind(c,name='read_predictions')
+    type(c_ptr), value::  fn_ptr
+    integer(c_int),value :: fn_ptr_length
+    character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
+    call c_f_pointer(fn_ptr, fn_str)
+    call read_predicted_arrivals(pred,fn_str)
+  end subroutine read_predictions
+
+
+ subroutine get_number_of_observations(n) bind(c,name='get_number_of_observations')
+     integer(kind=c_int), intent(out) :: n
+     n =obs%n
+ end subroutine get_number_of_observations
+
+  subroutine get_obervations(val,n) bind(c,name='get_observations')
+    integer(kind=c_int), intent(out) :: n
+    real(c_float), intent(out) :: val(obs%n,6)
+    integer i
+
+  do i=1,obs%n
+    val(i,1) =obs%sou(i)
+    val(i,2) =obs%rec(i)
+    val(i,3) =obs%arn(i)
+    val(i,4) =obs%art(i)
+    val(i,5) =obs%azi(i)
+    val(i,6) =obs%unc(i)
+ end do
+
+
+end subroutine get_obervations
+
+
+    subroutine get_number_of_predictions(n) bind(c,name='get_number_of_predictions')
+     integer(kind=c_int), intent(out) :: n
+     n =pred%n
+    end subroutine get_number_of_predictions
+
+
+  subroutine get_predictions(val,n) bind(c,name='get_predictions')
+  integer(kind=c_int), intent(in) :: n
+    real(c_float), intent(out) :: val(pred%n,5)
+    integer i
+
+    do i=1,pred%n
+       val(i,1) = pred%sou(i)
+       val(i,2) = pred%rec(i)
+       val(i,3) = pred%arn(i)
+       val(i,4) = pred%art(i)
+       val(i,5) = pred%azi(i)
+    end do
+
+  end subroutine get_predictions
+
+
+
+
+end module swmp
+
+
+module modgen
 
   use my_functions
   use my_types
@@ -201,7 +336,6 @@ module swmp_gen2dv
 contains
 
 subroutine read_conf(fn_ptr,fn_ptr_length)bind(c,name="gen2dv_read_conf")
-    integer(kind=c_int)::cln
     type(c_ptr), value::  fn_ptr
     integer(c_int),value :: fn_ptr_length
     character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
@@ -318,4 +452,7 @@ subroutine generate() bind(c,name="gen2dv_run")
 end subroutine generate
 
 
-end module swmp_gen2dv
+end module modgen
+
+
+
