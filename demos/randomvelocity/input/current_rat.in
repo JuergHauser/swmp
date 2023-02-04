@@ -1,7 +1,7 @@
 !-------------------------------------------------------------------------------
 ! input files
 !-------------------------------------------------------------------------------
-output/true/mod.vel ! velocity model
+output/current/mod.vel ! velocity model
 input/sources.dat   ! sources
 input/receivers.dat ! receivers
 !-------------------------------------------------------------------------------
@@ -28,11 +28,11 @@ input/recmode.dat   ! receover configuration
 !------------------------------------------------------------------------------
 ! output files
 !------------------------------------------------------------------------------
-output/true/arrivals.dat  ! arrival time
-output/true/wafpos.dat    ! wavefront positions
-output/true/raypaths.dat  ! raypaths
-output/true/frechet.hdr   ! frechet header
-output/true/frechet.mat   ! frechet matrix
-output/true/frechet.rai   ! frechet ray index
-output/true/rat.sum       ! rat info file
+output/current/arrivals.dat  ! arrival time
+output/current/wafpos.dat    ! wavefront positions
+output/current/raypaths.dat  ! raypaths
+output/current/frechet.hdr   ! frechet header
+output/current/frechet.mat   ! frechet matrix
+output/current/frechet.rai   ! frechet ray index
+output/current/rat.sum       ! rat info file
 

@@ -1,6 +1,18 @@
 
 import ctypes
 import numpy
+import numpy.ctypeslib
+import scipy
+import scipy.interpolate
+import glob
+import os
+import os.path
+
+import matplotlib
+#matplotlib.use('Agg')
+import matplotlib.pyplot
+import mpl_toolkits
+import mpl_toolkits.basemap
 
 # https://github.com/dhermes/foreign-fortran
 
@@ -16,8 +28,8 @@ class VelocityModel():
         self.dx=None
         self.dy=None
         self.cn=None
-        self.mv=None
-        self.mg=None
+        self.m=None
+
 
     def read(self,fn):
         pass
@@ -27,6 +39,7 @@ class TravelTimeData():
         self.obs=None
         self.pred=None
         pass
+
 
 class WaveFrontTracker():
 
@@ -84,28 +97,6 @@ class WaveFrontTracker():
         self.swmp.get_predictions(tt.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(n))
         self.tt.pred=numpy.array(tt)
 
-    def get_model_grid(self):
-        self.mod=VelocityModel()
-        x0=ctypes.c_float(-99.9)
-        y0=ctypes.c_float(-99.9)
-        nx=ctypes.c_int(-99)
-        ny=ctypes.c_int(-99)
-        dx=ctypes.c_float(-99.9)
-        dy=ctypes.c_float(-99.9)
-        cn=ctypes.c_int(-99)
-        self.swmp.get_model_meta_data(x0,y0,nx,ny,dx,dy,cn)
-        self.mod.x0=float(x0.value)
-        self.mod.y0=float(y0.value)
-        self.mod.nx=int(nx.value)
-        self.mod.ny=int(ny.value)
-        self.mod.dx=float(dx.value)
-        self.mod.dy=float(dy.value)
-        self.mod.cn=int(cn.value)
-        mv=numpy.empty((self.mod.nx+self.mod.cn*2),(self.mod.ny+self.mod.cn*2), dtype=ctypes.c_float)
-        self.swmp.get_model_grid(mg.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
-        self.mod.mg=numpy.array(mg)
-        return self.mod.mg
-
     def get_model_vector(self):
         self.mod=VelocityModel()
         x0=ctypes.c_float(-99.9)
@@ -123,12 +114,35 @@ class WaveFrontTracker():
         self.mod.dx=float(dx.value)
         self.mod.dy=float(dy.value)
         self.mod.cn=int(cn.value)
-        mv=numpy.empty((self.mod.nx+self.mod.cn*2)*(self.mod.ny+self.mod.cn*2), dtype=ctypes.c_float)
-        self.swmp.get_model_vector(mv.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
-        self.mod.mv=numpy.array(mv)
-        return self.mod.mv
+        m=numpy.empty((self.mod.nx+self.mod.cn*2)*(self.mod.ny+self.mod.cn*2), dtype=ctypes.c_float)
+        self.swmp.get_model_vector(m.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
+        self.mod.m=numpy.array(m)
+        return self.mod.m
 
-    def set_model_vector(self,mv_):
+
+    def get_resampled_model_vector(self):
+        self.resamod=VelocityModel()
+        x0=ctypes.c_float(-99.9)
+        y0=ctypes.c_float(-99.9)
+        nx=ctypes.c_int(-99)
+        ny=ctypes.c_int(-99)
+        dx=ctypes.c_float(-99.9)
+        dy=ctypes.c_float(-99.9)
+        cn=ctypes.c_int(-99)
+        self.swmp.get_resampled_model_meta_data(ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
+        self.resamod.x0=float(x0.value)
+        self.resamod.y0=float(y0.value)
+        self.resamod.nx=int(nx.value)
+        self.resamod.ny=int(ny.value)
+        self.resamod.dx=float(dx.value)
+        self.resamod.dy=float(dy.value)
+        self.resamod.cn=int(cn.value)
+        m=numpy.empty((self.resamod.nx+self.resamod.cn*2)*(self.resamod.ny+self.resamod.cn*2), dtype=ctypes.c_float)
+        self.swmp.get_resampled_model_vector(m.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
+        self.resamod.m=numpy.array(m)
+        return self.resamod.m
+
+    def set_model_vector(self,m_):
         x0=ctypes.c_float(-99.9)
         y0=ctypes.c_float(-99.9)
         nx=ctypes.c_int(-99)
@@ -137,8 +151,8 @@ class WaveFrontTracker():
         dy=ctypes.c_float(-99.9)
         cn=ctypes.c_int(-99)
         self.swmp.get_model_meta_data(ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
-        mv=numpy.asfortranarray(mv_)
-        self.swmp.set_model_vector(mv.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
+        m=numpy.asfortranarray(m_)
+        self.swmp.set_model_vector(m.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
         return
 
 class VelocityModelGenerator():
@@ -167,6 +181,98 @@ class ObservationGenerator():
 
     def run(self):
         self.swmp.creobs_run()
+
+
+class Visualisation(WaveFrontTracker):
+
+    def __init__(self):
+        WaveFrontTracker.__init__(self)
+        self.rp=[]
+        self.wf=[]
+        pass
+
+
+
+    def read_raypaths(self):
+        fn=ctypes.c_char_p((" "*64).encode('UTF-8'))
+        self.swmp.get_raypath_prediction_filepath(fn,ctypes.c_int(len(fn.value)))
+        fp=(fn.value.decode('UTF-8')).rstrip()
+        fpb=fp.rstrip('.'+os.path.basename(fp).split('.')[-1])
+        fps = glob.glob(fpb+'*.'+os.path.basename(fp).split('.')[-1])
+
+        for fp in fps:
+            fh=open(fp)
+            lines=fh.readlines()
+            rp=[]
+            irp=[]
+            for line in lines:
+                fields=line.split()
+                if fields[0]==('>') and irp!=[]:
+                    irp=numpy.array(irp)
+                    rp.append(irp)
+                    irp=[]
+                elif fields[0]!=('>'):
+                    irp.append([float(fields[0]),float(fields[1])])
+            if irp!=[]:
+                irp=numpy.array(irp)
+                rp.append(irp)
+
+            self.rp.append(rp)
+
+    def read_wavefronts(self):
+        fn=ctypes.c_char_p((" "*64).encode('UTF-8'))
+        self.swmp.get_wavefront_prediction_filepath(fn,ctypes.c_int(len(fn.value)))
+        fp=(fn.value.decode('UTF-8')).rstrip()
+        fh=open(fp)
+        lines=fh.readlines()
+        wf=[]
+        for line in lines:
+            fields=line.split()
+            if fields[0]==('>') and wf!=[]:
+                wf=numpy.array(wf)
+                self.wf.append(wf)
+                wf=[]
+            elif fields[0]!=('>'):
+                wf.append([float(fields[0]),float(fields[1])])
+        if  wf!=[]:
+            wf=numpy.array(wf)
+            self.wf.append(wf)
+
+    def get_raypath_figure(self,nrx_,nry_):
+        nrx=ctypes.c_int(nrx_)
+        nry=ctypes.c_int(nry_)
+        self.swmp.resample_model(nrx,nry)
+        m = self.get_resampled_model_vector()
+        x0=self.resamod.x0
+        y0=self.resamod.y0
+        nx=self.resamod.nx
+        ny=self.resamod.ny
+        x1=x0+self.resamod.dx*self.resamod.nx
+        y1=y0+self.resamod.dy*self.resamod.ny
+        xc=(x0+x1)/2.0
+        yc=(y0+y1)/2.0
+
+        x = numpy.linspace(x0, x1, nx)
+        y = numpy.linspace(y0, y1, ny)
+
+        yy, xx = numpy.meshgrid(y, x)
+        zz =numpy.reshape(m,(nx,ny))
+
+        graph = mpl_toolkits.basemap.Basemap (llcrnrlon=x0,llcrnrlat=y0,urcrnrlon=x1,urcrnrlat=y1,
+            resolution='i',projection='merc',lon_0=xc,lat_0=yc)
+
+        cmap = matplotlib.pyplot.colormaps['Greys_r']
+        graph.pcolormesh(xx, yy, zz,latlon=True,cmap=cmap)
+        graph.drawcoastlines()
+        # http://tsitsul.in/blog/coloropt/
+        colors=['#ebac23','#b80058','#008cf9','#006e00','#00bbad','#d163e6','#b24502','#ff9287','#5954d6','#00c6f8','#878500','#00a76c']
+        ic=0
+        for rp in self.rp:
+            for irp in rp:
+                graph.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],latlon=True)
+            ic=ic+1
+
+        return matplotlib.pyplot.gcf()
 
 if __name__ == "__main__":
     wt=WavefrontTracker()

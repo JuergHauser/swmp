@@ -66,7 +66,7 @@ contains
 
   subroutine setup_strip_for_point_source(vmod,sous,recs,params,head,tail)
     ! this subroutine creates the bicharactersitic strip for a given source point
-    ! params%sid out of the source point list given in source%pos 
+    ! params%sid out of the source point list given in source%pos
     use my_types
     use my_constants
     use my_functions
@@ -95,7 +95,7 @@ call cubic_bspline_interp_val(vmod,x,y,v0)
     !rat_setup bicharacteristic strip storage structure
     h=0
     do i=1,params%wt%n_senod
-       z=  -pi+(2*pi)/(params%wt%n_senod+1)*(i) 
+       z=  -pi+(2*pi)/(params%wt%n_senod+1)*(i)
        if (.not. associated(head)) then
           allocate(head)
           tail=>head
@@ -155,7 +155,7 @@ tail%dinr=0
     type(wavefront_container):: wafc
 type(rat_conf):: conf
 
-    ! local varaibles 
+    ! local varaibles
     integer :: i,j
 
 
@@ -207,7 +207,7 @@ end if
        do i=1,recmode%act(conf%sid)%n
           recs%stat(recmode%act(conf%sid)%val(i))=1
        end do
-    else 
+    else
        recs%stat=1
     end if
 
@@ -273,7 +273,7 @@ end if
 
   subroutine update_spfa(head,tail)
 
-    use my_types 
+    use my_types
     use my_functions
     implicit none
 
@@ -299,9 +299,9 @@ end if
           d2=0
        end if
        d=d1+d2
-  
+
              cur%spf=cur%spf+(d-cur%dinr)
-   
+
        d1=d2
        cur=>cur%next
     end do
@@ -325,7 +325,7 @@ end if
 
 
        head%spf=head%spf+(d-head%dinr)
-    
+
 
 
 ! chekc tail ray/node
@@ -344,7 +344,7 @@ end if
 d=d1+d2
 
       tail%spf=tail%spf+(d-tail%dinr)
-    
+
 
 
 
@@ -377,7 +377,7 @@ d=d1+d2
        if (.not.associated(cur%next)) exit  ! if we have update the tail
        if (cur%con(2)==1) then
           d2=great_circle_distance(cur%pos(1),cur%next%pos(1),cur%pos(2),cur%next%pos(2))/2.0
-       else 
+       else
           d2=0
        end if
        cur%dinr=d1+d2
@@ -407,7 +407,7 @@ d=d1+d2
        d1=0
     end if
 
-    if (tail%prev%con(2)==1) then    
+    if (tail%prev%con(2)==1) then
        d2=great_circle_distance(tail%pos(1),tail%prev%pos(1),tail%pos(2),tail%prev%pos(2))/2.0
     else
        d2=0
@@ -421,7 +421,7 @@ d=d1+d2
 
   subroutine insert_nodes_linear(head,tail,params)
 
-    ! If the pahse space distance between two points on the bicharacteristic strip becomes 
+    ! If the pahse space distance between two points on the bicharacteristic strip becomes
     ! bigger than a predefined threshold a point is interpolated using a linear itnerpolation
 
     use my_types
@@ -498,13 +498,13 @@ d=d1+d2
           allocate(tail%next)
           tail%next%prev=>tail
           tail => tail%next
-          nullify(tail%next)          
+          nullify(tail%next)
           tail%pos(1)=(x1+x2)/2.0
           tail%pos(2)=(y1+y2)/2.0
           tail%pos(3)=(z1+z2)/2.0
           tail%con(1)=1
           tail%con(2)=1
-          tail%pid=params%wt%nfrid 
+          tail%pid=params%wt%nfrid
           params%wt%n_nod=params%wt%n_nod+1
           params%wt%nfrid=params%wt%nfrid+1
           tail%spf=(head%spf+tail%spf)/2.0
@@ -518,7 +518,7 @@ d=d1+d2
 
   subroutine insert_nodes_splines(head,tail,params)
 
-    ! If the pahse space distance between two points on the bicharacteristic strip becomes 
+    ! If the pahse space distance between two points on the bicharacteristic strip becomes
     ! bigger than a predefined threshold a point is interpolated using a linear itnerpolation
 
     use my_types
@@ -642,7 +642,7 @@ d=d1+d2
           allocate(tail%next)
           tail%next%prev=>tail
           tail => tail%next
-          nullify(tail%next)          
+          nullify(tail%next)
           tail%pos(1)=(x1+x2)/2.0
           tail%pos(2)=(y1+y2)/2.0
           tail%pos(3)=(z1+z2)/2.0
@@ -661,7 +661,7 @@ d=d1+d2
   subroutine remove_nodes(head,tail,params)
 
     ! If two points on the bicharacteristic strip are closer together than a predefined
-    !  threshold. The poitn between thes two point is removed. Poitns whcih ar eleaving 
+    !  threshold. The poitn between thes two point is removed. Poitns whcih ar eleaving
     ! the spatial domain are also remcoed from the bicharacteristic strip
 
     use my_types
@@ -805,7 +805,7 @@ d=d1+d2
           oldnode => cur
           cur%prev%next => cur%next
           cur%next%prev => cur%prev
-          cur => head%next    
+          cur => head%next
           deallocate(oldnode)
           params%wt%n_nod=params%wt%n_nod-1
        end if
@@ -825,7 +825,7 @@ d=d1+d2
   subroutine store_strip(head,tail,wafc,conf)
 
     ! This subroutine stores tha bciharactersitic strip and the connectivity between
-    ! the points on the strip in order to acces this information alter when doing the ray 
+    ! the points on the strip in order to acces this information alter when doing the ray
     ! tracing from the receiver back to the source for the different arrivals
 
     use my_types
@@ -875,12 +875,12 @@ d=d1+d2
           wafc%waf(conf%wt%curit)%neig(i,1)=tail%pid
           wafc%waf(conf%wt%curit)%neig(i,2)=head%next%pid
           wafc%waf(conf%wt%curit)%con(i,1)=cur%con(1)
-          wafc%waf(conf%wt%curit)%con(i,2)= cur%con(2)              
-       else if (.not. associated(cur%next)) then       
+          wafc%waf(conf%wt%curit)%con(i,2)= cur%con(2)
+       else if (.not. associated(cur%next)) then
           wafc%waf(conf%wt%curit)%neig(i,1)=tail%prev%pid
           wafc%waf(conf%wt%curit)%neig(i,2)=head%pid
           wafc%waf(conf%wt%curit)%con(i,1)=cur%con(1)
-          wafc%waf(conf%wt%curit)%con(i,2)= cur%con(2)   
+          wafc%waf(conf%wt%curit)%con(i,2)= cur%con(2)
        end if
 
        wafc%waf(conf%wt%curit)%index%ind(i,:)=(/cur%pid,i/)

@@ -17,6 +17,7 @@ module swmp
 
 ! Data stuctures required for forward problem:
   type(scalar_field_2d)     :: vmod
+   type(scalar_field_2d)     :: resavmod
   type(receivers)           :: recs
   type(receiver_mode)       :: recmode
   type(wavefront_container) :: wafc
@@ -154,8 +155,41 @@ end if
 
 end subroutine forward
 
+subroutine resample_model(nry,nrx)bind(c,name="resample_model")
 
-! Setter and Getters to set everything from Python
+   integer(kind=c_int),intent(in),value :: nrx
+   integer(kind=c_int),intent(in),value :: nry
+
+    real(kind=dbl) :: f,x,y
+    integer :: i,j
+
+  resavmod%x0=vmod%x0;resavmod%y0=vmod%y0
+  resavmod%nx=nrx*(vmod%nx-1)+1;resavmod%ny=nry*(vmod%ny-1)+1
+  resavmod%dx=((vmod%nx-1)*vmod%dx)/(resavmod%nx-1)
+  resavmod%dy=((vmod%ny-1)*vmod%dy)/(resavmod%ny-1)
+  resavmod%cn=vmod%cn
+
+  if (associated(resavmod%val)) then
+    deallocate(resavmod%val)
+    nullify(resavmod%val)
+  end if
+
+  allocate(resavmod%val(resavmod%nx+resavmod%cn*2,resavmod%ny+resavmod%cn*2))
+
+  do i=1+resavmod%cn,resavmod%nx+resavmod%cn
+     do j=1+resavmod%cn,resavmod%ny+resavmod%cn
+        x=(i-1-resavmod%cn)*resavmod%dx+resavmod%x0
+        y=(j-1-resavmod%cn)*resavmod%dy+resavmod%y0
+        call cubic_bspline_interp_val(vmod,x,y,f)
+        resavmod%val(i,j)=f
+     end do
+  end do
+
+end subroutine resample_model
+
+
+
+! Setter and Getters to set (every)thing from Python
 
 ! dt - ode solver time step size
   subroutine get_dt(dt)bind(c,name="get_dt")
@@ -176,6 +210,24 @@ end subroutine forward
     call c_f_pointer(fn_ptr, fn_str)
     fn_str=conf%ofn_arrivals
 end subroutine get_arrival_prediction_filepath
+
+   subroutine get_rapyath_prediction_filepath(fn_ptr,fn_ptr_length)bind(c,name="get_raypath_prediction_filepath")
+    type(c_ptr), value::  fn_ptr
+    integer(c_int),value :: fn_ptr_length
+    character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
+    call c_f_pointer(fn_ptr, fn_str)
+    fn_str=conf%ofn_raypaths
+end subroutine get_rapyath_prediction_filepath
+
+  subroutine get_wavefront_prediction_filepath(fn_ptr,fn_ptr_length)bind(c,name="get_wavefront_prediction_filepath")
+    type(c_ptr), value::  fn_ptr
+    integer(c_int),value :: fn_ptr_length
+    character(len=fn_ptr_length,kind=c_char), pointer :: fn_str
+    call c_f_pointer(fn_ptr, fn_str)
+    fn_str=conf%ofn_wavefronts
+end subroutine get_wavefront_prediction_filepath
+
+
 
 ! maxit - maximum number of iterations
  subroutine get_maxit(maxit)bind(c,name="get_maxit")
@@ -218,6 +270,36 @@ end subroutine get_arrival_prediction_filepath
 
   end subroutine get_model_vector
 
+    subroutine get_resampled_model_meta_data(x0,y0,nx,ny,dx,dy,cn) bind(c,name='get_resampled_model_meta_data')
+    real(kind=c_float),intent(out) :: x0,y0,dx,dy
+    integer(kind=c_int),intent(out) :: nx,ny,cn
+
+    x0=resavmod%x0
+    y0=resavmod%y0
+    nx=resavmod%nx
+    ny=resavmod%ny
+    dx=resavmod%dx
+    dy=resavmod%dy
+    cn=resavmod%cn
+
+  end subroutine get_resampled_model_meta_data
+
+  subroutine get_resampled_model_vector(val,nx,ny,cn)bind(c,name='get_resampled_model_vector')
+
+    integer(kind=c_int), intent (in) :: nx,ny,cn
+    real(kind=c_float), intent(out) :: val((nx+cn*2)*(ny+cn*2))
+
+    integer i,j,k
+
+    do i=1,resavmod%nx+resavmod%cn*2
+       do j=1,resavmod%ny+resavmod%cn*2
+          call velnod2id(i,j,resavmod,k)
+          val(k)=resavmod%val(i,j)
+       end do
+    end do
+
+  end subroutine get_resampled_model_vector
+
   subroutine set_model_vector(val,nx,ny,cn)bind(c,name='set_model_vector')
 
     integer(kind=c_int), intent (in) :: nx,ny,cn
@@ -233,22 +315,6 @@ end subroutine get_arrival_prediction_filepath
     end do
 
   end subroutine set_model_vector
-
-
-  subroutine get_model_grid(val,nx,ny,cn)bind(c,name='get_model_grid')
-
-    integer(kind=c_int), intent (in) :: nx,ny,cn
-    real(c_float), intent(out) :: val((nx+cn*2),(ny+cn*2))
-
-    integer i,j,k
-
-    do i=1,vmod%nx+vmod%cn*2
-       do j=1,vmod%ny+vmod%cn*2
-          val(i,j)=vmod%val(i,j)
-       end do
-    end do
-
-  end subroutine get_model_grid
 
   subroutine read_observations(fn_ptr,fn_ptr_length) bind(c,name='read_observations')
     type(c_ptr), value::  fn_ptr
