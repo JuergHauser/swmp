@@ -272,7 +272,58 @@ class Visualisation(WaveFrontTracker):
                 graph.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],latlon=True)
             ic=ic+1
 
+        parallels = numpy.arange(-81,81,10)
+        graph.drawparallels(parallels,labels=[True,False,False,True])
+        meridians = numpy.arange(10,351,20)
+        graph.drawmeridians(meridians,labels=[False,True,True,False])
+
         return matplotlib.pyplot.gcf()
+
+    def get_wavefront_figure(self,nrx_,nry_):
+        nrx=ctypes.c_int(nrx_)
+        nry=ctypes.c_int(nry_)
+        self.swmp.resample_model(nrx,nry)
+        m = self.get_resampled_model_vector()
+        x0=self.resamod.x0
+        y0=self.resamod.y0
+        nx=self.resamod.nx
+        ny=self.resamod.ny
+        x1=x0+self.resamod.dx*self.resamod.nx
+        y1=y0+self.resamod.dy*self.resamod.ny
+        xc=(x0+x1)/2.0
+        yc=(y0+y1)/2.0
+
+        x = numpy.linspace(x0, x1, nx)
+        y = numpy.linspace(y0, y1, ny)
+
+        yy, xx = numpy.meshgrid(y, x)
+        zz =numpy.reshape(m,(nx,ny))
+
+        graph = mpl_toolkits.basemap.Basemap (llcrnrlon=x0,llcrnrlat=y0,urcrnrlon=x1,urcrnrlat=y1,
+            resolution='i',projection='merc',lon_0=xc,lat_0=yc)
+
+        cmap = matplotlib.pyplot.colormaps['Greys_r']
+        graph.pcolormesh(xx, yy, zz,latlon=True,cmap=cmap)
+        graph.drawcoastlines()
+        # http://tsitsul.in/blog/coloropt/
+        colors=['#ebac23','#b80058','#008cf9','#006e00','#00bbad','#d163e6','#b24502','#ff9287','#5954d6','#00c6f8','#878500','#00a76c']
+        ic=0
+
+        for wf in self.wf:
+            graph.plot(wf[:,0],wf[:,1],linewidth=1,color='k',latlon=True)
+
+        for rp in self.rp:
+            for irp in rp:
+                graph.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],latlon=True)
+            ic=ic+1
+
+        parallels = numpy.arange(-81,81,10)
+        graph.drawparallels(parallels,labels=[True,False,False,True])
+        meridians = numpy.arange(10,351,20)
+        graph.drawmeridians(meridians,labels=[False,True,True,False])
+
+        return matplotlib.pyplot.gcf()
+
 
 if __name__ == "__main__":
     wt=WavefrontTracker()
