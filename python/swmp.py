@@ -1,4 +1,3 @@
-
 import ctypes
 import numpy
 import numpy.ctypeslib
@@ -14,7 +13,6 @@ import matplotlib.pyplot
 import mpl_toolkits
 import mpl_toolkits.basemap
 
-# https://github.com/dhermes/foreign-fortran
 
 def numpy_pointer(array):
     return array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
