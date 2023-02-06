@@ -1,5 +1,5 @@
 
-module swmp
+module rat
 
 
   use my_types
@@ -29,6 +29,7 @@ module swmp
 ! Data stuctures required for inverse problem:
   type(observed_arrivals):: obs
   type(predicted_arrivals):: pred
+  type(crs_matrix):: jac
 
 contains
 
@@ -89,7 +90,7 @@ subroutine forward()bind(c,name="forward")
 
 
         ! A bicharacteristic strip with 3 points is describing wavefront,
-        ! with only afew poitns in the computational domain.
+        ! with only afew points in the computational domain.
         ! It therefore makes no sense to evolve it further
         ! and the computation for this source point is finished.
 
@@ -379,7 +380,113 @@ end subroutine get_obervations
 
   end subroutine get_predictions
 
-end module swmp
+
+
+    subroutine read_jacobian() bind(c,name="read_jacobian")
+
+    ! local variables
+    type(frechet_matrix_header):: freha
+
+    integer :: nre
+    integer:: i,j,k,icol,irow
+    type(list_index):: rain
+
+
+    ! read frechet matrix header infromation
+    call read_frechet_header(freha,conf%ofn_frechet_hdr)
+
+    ! laod the ray index
+    rain%n=freha%n1
+    allocate (rain%ind(rain%n,2))
+    open(unit=input,file=conf%ofn_frechet_rai,status='old')
+    do i=1,rain%n
+       read(input,*) rain%ind(i,1),rain%ind(i,2)
+    end do
+    close(input)
+
+    ! count the number of elements needed for the frechet matrix.
+    ! We do not now before hand which rows have to be loaded
+    ! This is due to multiarrival tomography
+
+    open(unit=input,file=conf%ofn_frechet_rai,status='old')
+
+    j=1
+    nre=0
+    jac%n1=0
+
+    do i=1,rain%n
+          nre=nre+(rain%ind(i,2)-rain%ind(i,1))+1
+          jac%n1=jac%n1+1
+          j=j+1
+    end do
+    close(input)
+
+
+    allocate(jac%row(jac%n1+1))
+    allocate(jac%val(nre))
+    allocate(jac%col(nre))
+
+
+    open(unit=bin,file=conf%ofn_frechet_mat,status='old',action='read',&
+         access='direct',form='unformatted',recl=freha%recole)
+
+    icol=1
+    irow=0
+    j=1
+
+    do i=1,rain%n
+          j=j+1
+          irow=irow+1
+          jac%row(irow)=icol
+          do k=rain%ind(i,1),rain%ind(i,2)
+             read(bin,rec=k) idum,jac%col(icol),jac%val(icol)
+             icol=icol+1
+          end do
+    end do
+
+    close(bin)
+    close(input)
+
+
+    jac%row(irow+1)=icol
+    jac%n2=freha%n2
+
+    call deallocate_list_index(rain)
+
+    end subroutine read_jacobian
+
+    subroutine get_sparse_jacobian_size(nr,nc,nnz) bind(c,name="get_sparse_jacobian_size")
+  integer(kind=c_int),intent(out)::nr,nc,nnz
+    nr=jac%n1
+    nc=jac%n2
+    nnz=size(jac%val,1)
+    end subroutine get_sparse_jacobian_size
+
+    subroutine get_sparse_jacobian(jrow,jcol,jval,n)bind(c,name="get_sparse_jacobian")
+
+    integer(kind=c_int), intent (in) :: n
+    real(kind=c_float), intent(out) :: jrow(n),jcol(n),jval(n)
+
+    integer :: i,j
+
+    j=0
+    do i=1,size(jac%val,1)
+       if (j+1<=size(jac%row)) then      ! evt -1
+          if (jac%row(j+1)==i) then
+             j=j+1
+          end if
+       end if
+       jrow(i)=j
+       jcol(i)=jac%col(i)
+       jval(i)=jac%val(i)
+    end do
+
+
+    end subroutine get_sparse_jacobian
+
+
+
+end module rat
 
 
 module pred2obs
@@ -586,7 +693,6 @@ subroutine generate() bind(c,name="gen2dv_run")
 
 
 end subroutine generate
-
 
 end module modgen
 

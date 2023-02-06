@@ -1,14 +1,17 @@
-import ctypes
-import numpy
-import numpy.ctypeslib
-import scipy
-import scipy.interpolate
 import glob
 import os
 import os.path
 
+import ctypes
+
+import numpy
+import numpy.ctypeslib
+
+import scipy
+import scipy.interpolate
+import scipy.sparse
+
 import matplotlib
-#matplotlib.use('Agg')
 import matplotlib.pyplot
 import mpl_toolkits
 import mpl_toolkits.basemap
@@ -46,7 +49,7 @@ class WaveFrontTracker():
         self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
         pass
 
-    def read_forward_configuration(self,fn_):
+    def read_configuration(self,fn_):
         fn=ctypes.c_char_p(fn_.encode('UTF-8'))
         self.swmp.rat_read_conf(fn,ctypes.c_int(len(fn.value)))
 
@@ -152,6 +155,37 @@ class WaveFrontTracker():
         m=numpy.asfortranarray(m_)
         self.swmp.set_model_vector(m.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
         return
+
+
+
+    def read_jacobian(self):
+        self.swmp.read_jacobian()
+        pass
+
+    def get_jacobian(self):
+
+
+
+        nr_=ctypes.c_int(-99)
+        nc_=ctypes.c_int(-99)
+        nnz_=ctypes.c_int(-99)
+        self.swmp.get_sparse_jacobian_size(ctypes.byref(nr_),ctypes.byref(nc_),ctypes.byref(nnz_))
+        nr=int(nr_.value)
+        nc=int(nc_.value)
+        nnz=int(nnz_.value)
+
+        jrow_=numpy.empty(nnz, dtype=ctypes.c_float)
+        jcol_=numpy.empty(nnz, dtype=ctypes.c_float)
+        jval_=numpy.empty(nnz, dtype=ctypes.c_float)
+
+        self.swmp.get_sparse_jacobian(jrow_.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),jcol_.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),jval_.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(nnz_))
+
+        jrow=numpy.array(jrow_)-1
+        jcol=numpy.array(jcol_)-1
+        jval=numpy.array(jval_)
+
+        return scipy.sparse.csr_array((jval, (jrow, jcol)), shape=(nr, nc))
+
 
 class VelocityModelGenerator():
 
@@ -321,6 +355,7 @@ class Visualisation(WaveFrontTracker):
         graph.drawmeridians(meridians,labels=[False,True,True,False])
 
         return matplotlib.pyplot.gcf()
+
 
 
 if __name__ == "__main__":

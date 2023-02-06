@@ -24,14 +24,14 @@ recmode.dat   ! reciever configuration
 50          ! store every n-th wavefront
 1           ! ray path extraction  no/yes 0/1
 2           ! ray storage  (0) no (1) one file (2) sorted by arrival (3) both
-0           ! frechet derivatives no/yes 0/1
+1           ! frechet derivatives no/yes 0/1
 !------------------------------------------------------------------------------
 ! output files
 !------------------------------------------------------------------------------
-output/arrivals.dat        ! arrival time
+output/arrivals.dat       ! arrival time
 output/wafpos.dat         ! wavefront positions
 output/raypaths.dat       ! raypaths
-output/frechet.hdr		   ! frechet header
+output/frechet.hdr        ! frechet header
 output/frechet.mat        ! frechet matrix
-output/frechet.rai
+output/frechet.rai        ! ray index file
 output/rat.sum            ! rat info file

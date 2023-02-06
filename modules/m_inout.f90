@@ -180,17 +180,27 @@ contains
     type(inv_conf) :: conf
     real(kind=dbl):: epsilon, eta
     ! local variables
+        character(len=strlen) :: line
+
 
     open(unit=input,file=ifn_inv,status='old')
     read(input,*) cdum; read(input,*) cdum;read(input,*) cdum
-    read(input,*) conf%ifn_vinit
-    read(input,*) conf%ifn_vcur
-    read(input,*) conf%ifn_vunc
-    read(input,*) conf%ifn_predtimes
-    read(input,*) conf%ifn_obstimes
-    read(input,*) conf%ifn_frechet_hdr
-    read(input,*) conf%ifn_frechet_mat
-    read(input,*) conf%ifn_frechet_rai
+     read(input,'(a)') line
+    conf%ifn_vinit =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+     conf%ifn_vcur =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+   conf%ifn_vunc =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+   conf%ifn_predtimes =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+conf%ifn_obstimes =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+ conf%ifn_frechet_hdr =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+ conf%ifn_frechet_mat =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+ conf%ifn_frechet_rai =  trim(line(1:index(line,'!')-1))
     read(input,*) cdum; read(input,*) cdum;read(input,*) cdum
     read(input,*) conf%invmod
     read(input,*) conf%subdim
@@ -200,10 +210,14 @@ contains
     read(input,*) eta
     read(input,*) rearth
     read(input,*) cdum; read(input,*) cdum;read(input,*) cdum
-    read(input,*) conf%ofn_vpert
-    read(input,*) conf%ofn_vupd
-    read(input,*) conf%ofn_tres
-    read(input,*) conf%ofn_rapco
+     read(input,'(a)') line
+    conf%ofn_vpert = trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+   conf%ofn_vupd =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+   conf%ofn_tres =  trim(line(1:index(line,'!')-1))
+     read(input,'(a)') line
+    conf%ofn_rapco =  trim(line(1:index(line,'!')-1))
     close(input)
 
   end subroutine read_inv_conf
@@ -664,20 +678,6 @@ end subroutine read_rabgv_conf
     g%row(irow+1)=icol
     g%n2=freha%n2
 
-!!$!!$
-!!$    write(*,*) irow
-!!$    pause
-!!$
-!!$    write(*,*) 'val'
-!!$    write(*,*) g%val
-!!$    write(*,*) 'col'
-!!$    write(*,*) g%col
-!!$write(*,*) g%col(59:61)
-!!$    write(*,*) 'row'
-!!$    write(*,*) g%row
-!!$
-!!$    write(*,*) 'size'
-!!$    write(*,*) freha%n1,freha%n2
 
     call deallocate_list_index(rain)
 
