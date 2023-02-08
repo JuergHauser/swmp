@@ -84,7 +84,9 @@ class WaveFrontTracker():
         self.swmp.get_number_of_observations(ctypes.byref(n))
         tt=numpy.empty([n.value,6], dtype=ctypes.c_float)
         self.swmp.get_observations(tt.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(n))
-        self.tt.obs=numpy.array(tt)
+        self.tt.obs=numpy.array(tt,order="C").reshape((6,n.value)).transpose()
+        print(self.tt.obs)
+
 
     def get_data(self):
         return self.tt
@@ -93,10 +95,10 @@ class WaveFrontTracker():
         fn=ctypes.c_char_p(fn_.encode('UTF-8'))
         self.swmp.read_predictions(fn,ctypes.c_int(len(fn.value)))
         n = ctypes.c_int(-99)
-        self.swmp.get_number_of_observations(ctypes.byref(n))
+        self.swmp.get_number_of_predictions(ctypes.byref(n))
         tt=numpy.empty([n.value,5], dtype=ctypes.c_float)
         self.swmp.get_predictions(tt.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(n))
-        self.tt.pred=numpy.array(tt)
+        self.tt.pred=numpy.array(tt,order="C").reshape((5,n.value)).transpose()
 
     def get_model_vector(self):
         self.mod=VelocityModel()
@@ -163,9 +165,6 @@ class WaveFrontTracker():
         pass
 
     def get_jacobian(self):
-
-
-
         nr_=ctypes.c_int(-99)
         nc_=ctypes.c_int(-99)
         nnz_=ctypes.c_int(-99)

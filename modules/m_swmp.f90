@@ -342,8 +342,8 @@ end subroutine get_wavefront_prediction_filepath
  end subroutine get_number_of_observations
 
   subroutine get_obervations(val,n) bind(c,name='get_observations')
-    integer(kind=c_int), intent(out) :: n
-    real(c_float), intent(out) :: val(obs%n,6)
+    integer(kind=c_int) :: n
+    real(c_float)  :: val(obs%n,6)
     integer i
 
   do i=1,obs%n
@@ -366,8 +366,8 @@ end subroutine get_obervations
 
 
   subroutine get_predictions(val,n) bind(c,name='get_predictions')
-  integer(kind=c_int), intent(in) :: n
-    real(c_float), intent(out) :: val(pred%n,5)
+  integer(kind=c_int) :: n
+    real(c_float) :: val(pred%n,5)
     integer i
 
     do i=1,pred%n
