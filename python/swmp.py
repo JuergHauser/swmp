@@ -85,8 +85,6 @@ class WaveFrontTracker():
         tt=numpy.empty([n.value,6], dtype=ctypes.c_float)
         self.swmp.get_observations(tt.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(n))
         self.tt.obs=numpy.array(tt,order="C").reshape((6,n.value)).transpose()
-        print(self.tt.obs)
-
 
     def get_data(self):
         return self.tt
