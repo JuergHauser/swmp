@@ -66,13 +66,14 @@ class WaveFrontTracker():
         self.swmp.forward()
         fn=ctypes.c_char_p((" "*64).encode('UTF-8'))
         self.swmp.get_arrival_prediction_filepath(fn,ctypes.c_int(len(fn.value)))
+
         fp=(fn.value.decode('UTF-8')).rstrip()
         self.tt.pred=numpy.loadtxt(fp)
 
         fh=open(fp,'w')
         fh.write("{}\n".format(numpy.shape(self.tt.pred)[0]))
         for i in range(numpy.shape(self.tt.pred)[0]):
-            fh.write('{:d} {:d} {:d} {} {} \n'.format(int(self.tt.pred[i,0]),int(self.tt.pred[i,1]),int(self.tt.pred[i,2]),self.tt.pred[i,3],self.tt.pred[i,4]))
+            fh.write('{} {} {} {} {} \n'.format(int(self.tt.pred[i,0]),int(self.tt.pred[i,1]),int(self.tt.pred[i,2]),self.tt.pred[i,3],self.tt.pred[i,4]))
         fh.close()
 
         pass
@@ -267,6 +268,41 @@ class Visualisation(WaveFrontTracker):
             wf=numpy.array(wf)
             self.wf.append(wf)
 
+    def get_model_figure(self,nrx_,nry_):
+        nrx=ctypes.c_int(nrx_)
+        nry=ctypes.c_int(nry_)
+        self.swmp.resample_model(nrx,nry)
+        m = self.get_resampled_model_vector()
+        x0=self.resamod.x0
+        y0=self.resamod.y0
+        nx=self.resamod.nx
+        ny=self.resamod.ny
+        x1=x0+self.resamod.dx*self.resamod.nx
+        y1=y0+self.resamod.dy*self.resamod.ny
+        xc=(x0+x1)/2.0
+        yc=(y0+y1)/2.0
+
+        x = numpy.linspace(x0, x1, nx)
+        y = numpy.linspace(y0, y1, ny)
+
+        yy, xx = numpy.meshgrid(y, x)
+        zz =numpy.reshape(m,(nx,ny))
+
+        graph = mpl_toolkits.basemap.Basemap (llcrnrlon=x0,llcrnrlat=y0,urcrnrlon=x1,urcrnrlat=y1,
+            resolution='i',projection='merc',lon_0=xc,lat_0=yc)
+
+        cmap = matplotlib.pyplot.colormaps['Greys_r']
+        graph.pcolormesh(xx, yy, zz,latlon=True,cmap=cmap)
+        graph.drawcoastlines()
+
+        parallels = numpy.arange(-81,81,10)
+        graph.drawparallels(parallels,labels=[True,False,False,True])
+        meridians = numpy.arange(10,351,20)
+        graph.drawmeridians(meridians,labels=[False,True,True,False])
+
+        return matplotlib.pyplot.gcf()
+
+
     def get_raypath_figure(self,nrx_,nry_):
         nrx=ctypes.c_int(nrx_)
         nry=ctypes.c_int(nry_)
@@ -351,7 +387,7 @@ class Visualisation(WaveFrontTracker):
         meridians = numpy.arange(10,351,20)
         graph.drawmeridians(meridians,labels=[False,True,True,False])
 
-        return matplotlib.pyplot.gcf()
+        return graph
 
 
 

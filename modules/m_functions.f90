@@ -1,6 +1,6 @@
 ! m_functions
 !
-! This module contains a set of basic functions and subroutines used 
+! This module contains a set of basic functions and subroutines used
 ! through out the programs and modules belonging to the mpstomo package
 !
 !   This file is part of mps.
@@ -90,7 +90,7 @@ contains
   !-----------------------------------------------------------------------------!
 
   subroutine heap_sort_list_index(ar)
-    ! Heap sort algorithm for a list_index. 
+    ! Heap sort algorithm for a list_index.
     ! based on numerical recepies in fortran
     use my_types
     implicit none
@@ -294,7 +294,7 @@ end if
     bs(3)=1.0/6.0*(1.0+3.0*s+3.0*s**2-3.0*s**3)
     bs(4)=1.0/6.0*s**3
 
-    bt(1)=1.0/6.0*(1.0-t)**3 
+    bt(1)=1.0/6.0*(1.0-t)**3
     bt(2)=1.0/6.0*(4.0-6.0*t**2+3.0*t**3)
     bt(3)=1.0/6.0*(1+3.0*t+3.0*t**2-3.0*t**3)
     bt(4)=1.0/6.0*t**3
@@ -328,7 +328,7 @@ end if
     bs(3)=1.0/6.0*(1.0+3.0*s+3.0*s**2-3.0*s**3)
     bs(4)=1.0/6.0*s**3
 
-    bt(1)=1.0/6.0*(1.0-t)**3 
+    bt(1)=1.0/6.0*(1.0-t)**3
     bt(2)=1.0/6.0*(4.0-6.0*t**2+3.0*t**3)
     bt(3)=1.0/6.0*(1+3.0*t+3.0*t**2-3.0*t**3)
     bt(4)=1.0/6.0*t**3
@@ -351,7 +351,7 @@ end if
           if (n<1) then
              n=1
           end if
-          intp=intp+bs(i)*bt(j)*gr%val(m,n) 
+          intp=intp+bs(i)*bt(j)*gr%val(m,n)
        end do
     end do
 
@@ -387,7 +387,7 @@ end if
     bs0(3)=1.0/6.0*(1.0+3.0*s+3.0*s**2-3.0*s**3)
     bs0(4)=1.0/6.0*s**3
 
-    bt0(1)=1.0/6.0*(1.0-t)**3 
+    bt0(1)=1.0/6.0*(1.0-t)**3
     bt0(2)=1.0/6.0*(4.0-6.0*t**2+3.0*t**3)
     bt0(3)=1.0/6.0*(1+3.0*t+3.0*t**2-3.0*t**3)
     bt0(4)=1.0/6.0*t**3
@@ -420,7 +420,7 @@ end if
           if (n<1) then
              n=1
           end if
-          f=f+bs0(i)*bt0(j)*gr%val(m,n) 
+          f=f+bs0(i)*bt0(j)*gr%val(m,n)
        end do
     end do
 
@@ -442,7 +442,7 @@ end if
           if (n<1) then
              n=1
           end if
-          fx=fx+bs1(i)*bt0(j)*gr%val(m,n) 
+          fx=fx+bs1(i)*bt0(j)*gr%val(m,n)
        end do
     end do
 
@@ -466,7 +466,7 @@ end if
           if (n<1) then
              n=1
           end if
-          fy=fy+bs0(i)*bt1(j)*gr%val(m,n) 
+          fy=fy+bs0(i)*bt1(j)*gr%val(m,n)
        end do
     end do
 
@@ -502,7 +502,7 @@ end if
     bs0(3)=1.0/6.0*(1.0+3.0*s+3.0*s**2-3.0*s**3)
     bs0(4)=1.0/6.0*s**3
 
-    bt0(1)=1.0/6.0*(1.0-t)**3 
+    bt0(1)=1.0/6.0*(1.0-t)**3
     bt0(2)=1.0/6.0*(4.0-6.0*t**2+3.0*t**3)
     bt0(3)=1.0/6.0*(1+3.0*t+3.0*t**2-3.0*t**3)
     bt0(4)=1.0/6.0*t**3
@@ -525,7 +525,7 @@ end if
     bt2(1)=+(1-t)
     bt2(2)=+1.0/2.0*(-4.0+6.0*t)
     bt2(3)=+1.0/2.0*(2.0-6.0*t)
-    bt2(4)=+1.0*t 
+    bt2(4)=+1.0*t
 
     f=0.0_dbl
 
@@ -545,7 +545,7 @@ end if
           if (n<1) then
              n=1
           end if
-          f=f+bs0(i)*bt0(j)*gr%val(m,n) 
+          f=f+bs0(i)*bt0(j)*gr%val(m,n)
        end do
     end do
 
@@ -567,7 +567,7 @@ end if
           if (n<1) then
              n=1
           end if
-          fx=fx+bs1(i)*bt0(j)*gr%val(m,n) 
+          fx=fx+bs1(i)*bt0(j)*gr%val(m,n)
        end do
     end do
 
@@ -591,7 +591,7 @@ end if
           if (n<1) then
              n=1
           end if
-          fy=fy+bs0(i)*bt1(j)*gr%val(m,n) 
+          fy=fy+bs0(i)*bt1(j)*gr%val(m,n)
        end do
     end do
 
@@ -639,7 +639,7 @@ end if
           if (n<1) then
              n=1
           end if
-          fyy=fyy+bs0(i)*bt2(j)*gr%val(m,n) 
+          fyy=fyy+bs0(i)*bt2(j)*gr%val(m,n)
        end do
     end do
 
@@ -664,7 +664,7 @@ end if
           if (n<1) then
              n=1
           end if
-          fxy=fxy+bs1(i)*bt1(j)*gr%val(m,n) 
+          fxy=fxy+bs1(i)*bt1(j)*gr%val(m,n)
        end do
     end do
 
@@ -731,7 +731,7 @@ end subroutine upsample_bspline
 
   subroutine id2nei(id,vmod,nei)
 
-    use my_types 
+    use my_types
     implicit none
 
     ! subroutine arguments
@@ -785,7 +785,7 @@ end subroutine upsample_bspline
 
   function linear_interp_1d (x1,y1,x2,y2,x) result(y)
     ! computes the corresponding y value for  the input parmeter x using a
-    ! linear interpolation based on the points (x1,y1) and (x2,y2)  
+    ! linear interpolation based on the points (x1,y1) and (x2,y2)
     use my_types
     implicit none
     !function arguments
@@ -835,7 +835,7 @@ end subroutine upsample_bspline
   !---------------------------------------------------------------------------!
 
   subroutine point_polygon_relation (x, y, x0, y0, k, m)
-    ! given a polygonal line connecting the vertices (x(:)y(:)) tkaen in the order 
+    ! given a polygonal line connecting the vertices (x(:)y(:)) tkaen in the order
     ! from 1 to n. it is assumes that he polygonal path is a loop where x(n)=x(1)
     ! and y(n)=y(1) or there is an arc from (x(n),y(n)) to (x(1),y(1)).
     ! the polygon may cross itself any number of times
@@ -859,14 +859,14 @@ end subroutine upsample_bspline
     integer:: i, n
     real(kind=dbl)    :: angle, eps, pi2, sum, theta, theta1, thetai, tol, u, v
 
-    ! eps is a machin dependent constant, eps is the smallest number so 
+    ! eps is a machin dependent constant, eps is the smallest number so
     ! that 1.0 + EPS > 1.0
 
     eps = EPSILON(1.0_dbl)
 
     pi2 = 2.0*pi           ! 2 pi just for making the life easier
-    tol = 4.0*eps*pi       ! angle tolerance 
-    k = -1                 ! initialize as outside 
+    tol = 4.0*eps*pi       ! angle tolerance
+    k = -1                 ! initialize as outside
     m = 0                  ! outside of the paths
 
     n=size(x)              ! number of corners of the polygon
@@ -901,7 +901,7 @@ end subroutine upsample_bspline
           return
        end if
        ! if angle > pi reset to corresponding smaller one
-       if (angle > pi)  then 
+       if (angle > pi)  then
           angle = angle - pi2
        end if
        ! check if we are going counter clockwise
@@ -945,7 +945,7 @@ end subroutine upsample_bspline
   !---------------------------------------------------------------------------!
 
   subroutine closest_point_on_line(x,y,x1,y1,x2,y2,xcp,ycp)
-    ! Given a line between x1,y1 and x2,y2 this subroutien calculates the 
+    ! Given a line between x1,y1 and x2,y2 this subroutien calculates the
     ! closest point on that line to the point x,y.
     use my_types
     implicit none
@@ -1110,10 +1110,10 @@ end subroutine upsample_bspline
   !--------------------------------------------------------------------------!
 
   real(kind=dbl) function ran1(iseed)
-    ! Minimal randomnumber generator of Parka nd Miller with Bays-Durham shuffle and 
-    ! addedsafeguards. Returns auniformrandomdeviate between0.0and1.0(exclusive of 
+    ! Minimal randomnumber generator of Parka nd Miller with Bays-Durham shuffle and
+    ! addedsafeguards. Returns auniformrandomdeviate between0.0and1.0(exclusive of
     ! the endpoint values). Call with idum a negative integer to initialize; thereafter,
-    ! donot  alter idum between successive deviates in a sequence. RNMX should 
+    ! donot  alter idum between successive deviates in a sequence. RNMX should
     ! approximate the largest floating value that is less than 1.
     use my_types
     implicit none
@@ -1186,20 +1186,20 @@ end subroutine upsample_bspline
   !------------------------------------------------------------------------!
 
   subroutine pearsn(x,y,r,prob,z)
-    ! Given two arrays x and y thsi subroutine computes their correlation 
-    ! coeffcien R, the significance leve at which the null hypothesis of zero 
-    ! correlation is disproved (prob whos small values indicate a signifcant 
+    ! Given two arrays x and y thsi subroutine computes their correlation
+    ! coeffcien R, the significance leve at which the null hypothesis of zero
+    ! correlation is disproved (prob whos small values indicate a signifcant
     ! correlation), and Fisher's z, whos calue can be used in furter statistical
     ! tests
     use my_types
 
-    implicit none     
+    implicit none
 
     ! subroutine arguments
     real(kind=dbl) :: x(:),y(:)
     real(kind=dbl) :: r,prob,z
 
-    ! local variables 
+    ! local variables
     real(kind=dbl),parameter:: tiny=1.e-20
     integer n,j
     real(kind=dbl):: ax,ay,df,sxx,sxy,syy,t,xt,yt
@@ -1241,7 +1241,7 @@ end subroutine upsample_bspline
     implicit none
     ! fucntion arguments
     real(kind=dbl):: a,b,x
-    ! local variables   
+    ! local variables
     real(kind=dbl)::  bt
     if(x<0.0_dbl.or.x>1.0_dbl) then
        write(*,*) 'bad argument x in betai'
@@ -1320,7 +1320,7 @@ end subroutine upsample_bspline
   real(kind=dbl) function gammln(xx)
     ! Returns the value ln(Gammma(xx)) for xx>0
     use my_types
-    implicit none  
+    implicit none
 
     real(kind=dbl)::xx
     integer:: j
@@ -1358,7 +1358,6 @@ end subroutine upsample_bspline
       real(kind=dbl):: adev,ave,curt,sdev,skew,var,data(n)
       INTEGER j
       real(kind=dbl):: p,s,ep
-      if(n.le.1)pause 'n must be at least 2 in moment'
       s=0.
       do j=1,n
         s=s+data(j)
@@ -1386,8 +1385,6 @@ end do
       if(var.ne.0.)then
         skew=skew/(n*sdev**3)
         curt=curt/(n*var**2)-3.
-      else
-        pause 'no skew or kurtosis when zero variance in moment'
       endif
       return
       end subroutine

@@ -6,16 +6,9 @@ sys.path.append(cwd+"/../../python")
 
 import swmp
 
-import numpy
-
 wt=swmp.WaveFrontTracker()
 wt.read_configuration('input/cur_rat.in')
 wt.forward()
-
-wt.read_predictions('output/arrivals.dat')
-
-wt.read_jacobian()
-jac=wt.get_jacobian()
 
 vis=swmp.Visualisation()
 vis.read_configuration('input/cur_rat.in')

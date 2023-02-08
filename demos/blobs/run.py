@@ -22,13 +22,8 @@ og=swmp.ObservationGenerator()
 og.read_configuration('input/creobs.in')
 og.run()
 
-
-wt.read_predictions('output/true/arrivals.dat')
-wt.read_observations('output/data/observed.dat')
-
-
-#vis=swmp.Visualisation()
-#vis.read_configuration('input/true_rat.in')
-#vis.read_raypaths()
-#fig=vis.get_raypath_figure(5,5)
-#fig.savefig('output/true/raypaths.png')
+vis=swmp.Visualisation()
+vis.read_configuration('input/true_rat.in')
+vis.read_raypaths()
+fig=vis.get_raypath_figure(5,5)
+fig.savefig('output/true/raypaths.png')

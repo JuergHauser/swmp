@@ -143,16 +143,16 @@ subroutine forward()bind(c,name="forward")
   call write_rat_summary(vmod,conf,recs)
 
   ! freeing up remaining memory
-  call deallocate_wavefront_container(wafc)
+  !  call deallocate_wavefront_container(wafc)
 
-  call deallocate_receivers(recs)
-if (conf%recmode==1) then
-  call deallocate_receiver_mode(recmode)
-end if
-  call deallocate_sources(sous)
-  call delete_strip(head,tail)
-  call deallocate_scalar_field_2d(vmod)
-  call deallocate_rat_conf(conf)
+  ! call deallocate_receivers(recs)
+!if (conf%recmode==1) then
+!  call deallocate_receiver_mode(recmode)
+!end if
+!  call deallocate_sources(sous)
+!  call delete_strip(head,tail)
+!  call deallocate_scalar_field_2d(vmod)
+!  call deallocate_rat_conf(conf)
 
 end subroutine forward
 
