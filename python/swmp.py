@@ -64,6 +64,69 @@ class WaveFrontTracker():
         self.swmp.get_dt(ctypes.byref(val))
         return float(val.value)
 
+    def set_maxit(self,maxit):
+        val = ctypes.c_int(maxit)
+        self.swmp.set_maxit(val)
+
+    def get_maxit(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
+    def set_nsenod(self,nsenod):
+        val = ctypes.c_int(nsenod)
+        self.swmp.set_nsenod(val)
+
+    def get_nsenod(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
+    def set_mode(self,mode):
+        val = ctypes.c_int(mode)
+        self.swmp.set_mode(val)
+
+    def get_mode(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
+    def set_solver(self,solver):
+        val = ctypes.c_int(solver)
+        self.swmp.set_solver(val)
+
+    def get_solver(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
+    def set_interp(self,interp):
+        val = ctypes.c_int(interp)
+        self.swmp.set_interp(val)
+
+    def get_interp(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
+    def set_mar(self,mar):
+        val = ctypes.c_int(mar)
+        self.swmp.set_mar(val)
+
+    def get_mar(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
+    def set_velint(self,velint):
+        val = ctypes.c_int(velint)
+        self.swmp.set_velint(val)
+
+    def get_velint(self):
+        val = ctypes.c_int(-99)
+        self.swmp.get_dt(ctypes.byref(val))
+        return int(val.value)
+
     def forward(self):
         self.swmp.forward()
         fn=ctypes.c_char_p((" "*64).encode('UTF-8'))
