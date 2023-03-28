@@ -7,11 +7,15 @@ sys.path.append(cwd+"/../../python")
 import swmp
 
 tv=swmp.VelocityModelGenerator()
-tv.read_configuration('input/true2dv.in')
+tv.read_configuration('input/true_2dv.in')
 tv.run()
 
 sv=swmp.VelocityModelGenerator()
-sv.read_configuration('input/start2dv.in')
+sv.read_configuration('input/start_2dv.in')
+sv.run()
+
+sv=swmp.VelocityModelGenerator()
+sv.read_configuration('input/current_2dv.in')
 sv.run()
 
 wt=swmp.WaveFrontTracker()

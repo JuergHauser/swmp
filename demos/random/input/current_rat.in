@@ -10,7 +10,7 @@ input/receivers.dat ! receivers
 5                   ! ode solver time step size
 500                 ! maximum number of iterations
 75                  ! number of nodes on the bicharacteristic strip
-1	                ! kinematic (1) kinematic and spreading (2)
+1                   ! kinematic (1) kinematic and spreading (2)
 1                   ! 4th ordRK (1) 5th ord RK (2) 5th ord adaptive RK (3)
 1                   ! interpolator (1) linear) (2) weighted average
 10                  ! maximum number of arrivals for a receiver

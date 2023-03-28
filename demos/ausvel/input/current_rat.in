@@ -1,7 +1,7 @@
 !-------------------------------------------------------------------------------
 ! input files
 !-------------------------------------------------------------------------------
-output/current/mod.vel ! velocity model
+input/current.vel ! velocity model
 input/sources.dat   ! sources
 input/receivers.dat ! receivers
 !-------------------------------------------------------------------------------
@@ -10,7 +10,7 @@ input/receivers.dat ! receivers
 5                   ! ode solver time step size
 500                 ! maximum number of iterations
 75                  ! number of nodes on the bicharacteristic strip
-1	                ! kinematic (1) kinematic and spreading (2)
+1                   ! kinematic (1) kinematic and spreading (2)
 1                   ! 4th ordRK (1) 5th ord RK (2) 5th ord adaptive RK (3)
 1                   ! interpolator (1) linear) (2) weighted average
 10                  ! maximum number of arrivals for a receiver
@@ -28,11 +28,11 @@ input/recmode.dat   ! receover configuration
 !------------------------------------------------------------------------------
 ! output files
 !------------------------------------------------------------------------------
-output/current/arrivals.dat  ! arrival time
-output/current/wafpos.dat    ! wavefront positions
-output/current/raypaths.dat  ! raypaths
-output/current/frechet.hdr   ! frechet header
-output/current/frechet.mat   ! frechet matrix
-output/current/frechet.rai   ! frechet ray index
-output/current/rat.sum       ! rat info file
+output/arrivals.dat  ! arrival time
+output/wafpos.dat    ! wavefront positions
+output/raypaths.dat  ! raypaths
+output/frechet.hdr   ! frechet header
+output/frechet.mat   ! frechet matrix
+output/frechet.rai   ! frechet ray index
+output/rat.sum       ! rat info file
 

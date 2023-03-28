@@ -1,0 +1,39 @@
+!-------------------------------------------------------------------------------
+! set grid size and location
+!-------------------------------------------------------------------------------
+110 -45         ! grid origin in lon and lat
+25    19            ! number of grid points in lon and lat
+2.0   2.0           ! grid spacing in lon and lat
+0                   ! number of cushion nodes 
+!-------------------------------------------------------------------------------
+! set grid velocity values
+!-------------------------------------------------------------------------------
+2.8                 ! background velocity value
+!-------------------------------------------------------------------------------
+! optionally apply random structure
+!-------------------------------------------------------------------------------
+1                   ! add random structure (0=no,1=yes)
+0.6                 ! standard deviation of random structure
+-15341 -24366       ! random seed (integer) for Guassian noise
+!-------------------------------------------------------------------------------
+! optionally apply spikes
+!------------------------------------------------------------------------------
+0                   ! number of spikes (0 no anomaly)
+!-------------------------------------------------------------------------------
+! optionally apply checkerboard
+!-------------------------------------------------------------------------------
+0                   ! add checkerboard
+0.7 0.5             ! maximum perturbation of vertices
+3 6                 ! checkerboard size (NxN)
+1 0                 ! use spacing (0=no,1=yes)
+!------------------------------------------------------------------------------
+! model covariance
+!-----------------------------------------------------------------------------
+1                   ! generate model covariance grid
+0.0100              ! background value
+!------------------------------------------------------------------------------
+! output file names
+!-------------------------------------------------------------------------------
+output/true/mod.vel      ! velocity
+output/true/mod.var      ! model covariance
+output/true/mod.ani      ! anisotropy

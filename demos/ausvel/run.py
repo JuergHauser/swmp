@@ -7,11 +7,11 @@ sys.path.append(cwd+"/../../python")
 import swmp
 
 wt=swmp.WaveFrontTracker()
-wt.read_configuration('input/cur_rat.in')
+wt.read_configuration('input/current_rat.in')
 wt.forward()
 
 vis=swmp.Visualisation()
-vis.read_configuration('input/cur_rat.in')
+vis.read_configuration('input/current_rat.in')
 vis.read_raypaths()
 vis.read_wavefronts()
 fig=vis.get_wavefront_figure(5,5)
