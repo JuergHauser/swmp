@@ -21,7 +21,7 @@ input/recmode.dat   ! receover configuration
 !-------------------------------------------------------------------------------
 ! output
 --------------------------------------------------------------------------------
-1000           ! store every n-th wavefront
+100           ! store every n-th wavefront
 1             ! ray path extraction  no/yes 0/1
 2             ! ray storage  (0) no (1) one file (2) sorted by arrival (3) both
 1             ! frechet derivatives no/yes 0/1

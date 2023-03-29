@@ -13,8 +13,8 @@ import scipy.sparse
 
 import matplotlib
 import matplotlib.pyplot
-import mpl_toolkits
-import mpl_toolkits.basemap
+import cartopy.crs
+import cartopy.feature 
 
 
 # map is a reserved word in python so we shall use karte
@@ -352,23 +352,19 @@ class Visualisation(WaveFrontTracker):
 
         yy, xx = numpy.meshgrid(y, x)
         zz =numpy.reshape(m,(nx,ny))
-
-        karte = mpl_toolkits.basemap.Basemap (llcrnrlon=x0,llcrnrlat=y0,urcrnrlon=x1,urcrnrlat=y1,
-            resolution='i',projection='merc',lon_0=xc,lat_0=yc)
-
+        
+        fig = matplotlib.pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1, projection=cartopy.crs.Mercator(central_longitude=xc, min_latitude=y0, max_latitude=y1, globe=None, latitude_true_scale=None, false_easting=0.0, false_northing=0.0, scale_factor=None))
+        ax.set_extent([x0, x1, y0, y1], crs=cartopy.crs.PlateCarree())
+        
         cmap = matplotlib.pyplot.colormaps['Greys_r']
-        colormesh=karte.pcolormesh(xx, yy, zz,latlon=True,cmap=cmap)
-        karte.drawcoastlines()
+        cm=ax.pcolormesh(xx, yy, zz,cmap=cmap,transform=cartopy.crs.PlateCarree())
+        ax.coastlines(resolution='10m', color='black')
 
-        parallels = numpy.arange(-81,81,10)
-        karte.drawparallels(parallels,labels=[True,False,False,True])
-        meridians = numpy.arange(10,351,20)
-        karte.drawmeridians(meridians,labels=[False,True,True,False])
-
-        karte.colorbar(colormesh)
+        ax.gridlines(color='k')
+        fig.colorbar(cm, orientation='horizontal')
 
         return matplotlib.pyplot.gcf()
-
 
     def get_raypath_figure(self,nrx_,nry_):
         nrx=ctypes.c_int(nrx_)
@@ -389,27 +385,26 @@ class Visualisation(WaveFrontTracker):
 
         yy, xx = numpy.meshgrid(y, x)
         zz =numpy.reshape(m,(nx,ny))
-
-        karte = mpl_toolkits.basemap.Basemap (llcrnrlon=x0,llcrnrlat=y0,urcrnrlon=x1,urcrnrlat=y1,
-            resolution='i',projection='merc',lon_0=xc,lat_0=yc)
-
+        
+        fig = matplotlib.pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1, projection=cartopy.crs.Mercator(central_longitude=xc, min_latitude=y0, max_latitude=y1, globe=None, latitude_true_scale=None, false_easting=0.0, false_northing=0.0, scale_factor=None))
+        ax.set_extent([x0, x1, y0, y1], crs=cartopy.crs.PlateCarree())
+        
         cmap = matplotlib.pyplot.colormaps['Greys_r']
-        colormesh=karte.pcolormesh(xx, yy, zz,latlon=True,cmap=cmap)
-        karte.drawcoastlines()
+        cm=ax.pcolormesh(xx, yy, zz,cmap=cmap,transform=cartopy.crs.PlateCarree())
+        ax.coastlines(resolution='10m', color='black')
+
         # http://tsitsul.in/blog/coloropt/
         colors=['#ebac23','#b80058','#008cf9','#006e00','#00bbad','#d163e6','#b24502','#ff9287','#5954d6','#00c6f8','#878500','#00a76c']
         ic=0
+
         for rp in self.rp:
             for irp in rp:
-                karte.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],latlon=True)
+                ax.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],transform=cartopy.crs.PlateCarree())
             ic=ic+1
 
-        parallels = numpy.arange(-81,81,10)
-        karte.drawparallels(parallels,labels=[True,False,False,True])
-        meridians = numpy.arange(10,351,20)
-        karte.drawmeridians(meridians,labels=[False,True,True,False])
-
-        karte.colorbar(colormesh)
+        ax.gridlines(color='k')
+        fig.colorbar(cm, orientation='horizontal')
 
         return matplotlib.pyplot.gcf()
 
@@ -432,34 +427,30 @@ class Visualisation(WaveFrontTracker):
 
         yy, xx = numpy.meshgrid(y, x)
         zz =numpy.reshape(m,(nx,ny))
-
-        karte = mpl_toolkits.basemap.Basemap (llcrnrlon=x0,llcrnrlat=y0,urcrnrlon=x1,urcrnrlat=y1,
-            resolution='i',projection='merc',lon_0=xc,lat_0=yc)
-
+        
+        fig = matplotlib.pyplot.figure()
+        ax = fig.add_subplot(1, 1, 1, projection=cartopy.crs.Mercator(central_longitude=xc, min_latitude=y0, max_latitude=y1, globe=None, latitude_true_scale=None, false_easting=0.0, false_northing=0.0, scale_factor=None))
+        ax.set_extent([x0, x1, y0, y1], crs=cartopy.crs.PlateCarree())
+        
         cmap = matplotlib.pyplot.colormaps['Greys_r']
-        colormesh=karte.pcolormesh(xx, yy, zz,latlon=True,cmap=cmap)
-        karte.drawcoastlines()
+        cm=ax.pcolormesh(xx, yy, zz,cmap=cmap,transform=cartopy.crs.PlateCarree())
+        ax.coastlines(resolution='10m', color='black')
+
         # http://tsitsul.in/blog/coloropt/
         colors=['#ebac23','#b80058','#008cf9','#006e00','#00bbad','#d163e6','#b24502','#ff9287','#5954d6','#00c6f8','#878500','#00a76c']
         ic=0
 
         for wf in self.wf:
-            karte.plot(wf[:,0],wf[:,1],linewidth=1,color='k',latlon=True)
-
+            ax.plot(wf[:,0],wf[:,1],linewidth=1,color='k',transform=cartopy.crs.PlateCarree())
         for rp in self.rp:
             for irp in rp:
-                karte.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],latlon=True)
+                ax.plot(irp[:,0],irp[:,1],linewidth=1,color=colors[ic],transform=cartopy.crs.PlateCarree())
             ic=ic+1
 
-        parallels = numpy.arange(-81,81,10)
-        karte.drawparallels(parallels,labels=[True,False,False,True])
-        meridians = numpy.arange(10,351,20)
-        karte.drawmeridians(meridians,labels=[False,True,True,False])
-
-        karte.colorbar(colormesh)
+        ax.gridlines(color='k')
+        fig.colorbar(cm, orientation='horizontal')
 
         return matplotlib.pyplot.gcf()
-
 
 
 if __name__ == "__main__":
