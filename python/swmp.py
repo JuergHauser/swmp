@@ -41,8 +41,8 @@ class TravelTimeData():
     def __init__(self):
         self.obs=None
         self.pred=None
+        self.joined=None
         pass
-
 
 class WaveFrontTracker():
 
@@ -152,8 +152,6 @@ class WaveFrontTracker():
         self.swmp.get_observations(tt.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(n))
         self.tt.obs=numpy.array(tt,order="C").reshape((6,n.value)).transpose()
 
-    def get_data(self):
-        return self.tt
 
     def read_predictions(self,fn_):
         fn=ctypes.c_char_p(fn_.encode('UTF-8'))
@@ -163,6 +161,15 @@ class WaveFrontTracker():
         tt=numpy.empty([n.value,5], dtype=ctypes.c_float)
         self.swmp.get_predictions(tt.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(n))
         self.tt.pred=numpy.array(tt,order="C").reshape((5,n.value)).transpose()
+
+    def get_data(self):
+        return self.tt
+
+    def get_observations(self):
+        return self.tt.obs
+
+    def get_predictions(self):
+        return self.tt.pred
 
     def get_model_vector(self):
         self.mod=VelocityModel()
@@ -222,8 +229,6 @@ class WaveFrontTracker():
         self.swmp.set_model_vector(m.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(x0),ctypes.byref(y0),ctypes.byref(nx), ctypes.byref(ny), ctypes.byref(dx),ctypes.byref(dy),ctypes.byref(cn))
         return
 
-
-
     def read_jacobian(self):
         self.swmp.read_jacobian()
         pass
@@ -246,8 +251,58 @@ class WaveFrontTracker():
         jrow=numpy.array(jrow_)-1
         jcol=numpy.array(jcol_)-1
         jval=numpy.array(jval_)
-
+        
         return scipy.sparse.csr_array((jval, (jrow, jcol)), shape=(nr, nc))
+
+    def join_observations_and_predictions(self):
+        self.obs_mask=numpy.full((numpy.shape(self.tt.obs)[0]),False)
+        self.pred_mask=numpy.full((numpy.shape(self.tt.pred)[0]),False)
+        
+        for i in range(numpy.shape(self.tt.pred)[0]):
+            for j in range(numpy.shape(self.tt.obs)[0]):
+                if ((self.tt.pred[i,0]==self.tt.obs[j,0]) & (self.tt.pred[i,1]==self.tt.obs[j,1]) & (self.tt.pred[i,2]==self.tt.obs[j,2])):
+                    self.pred_mask[i] = True
+                    self.obs_mask[j] = True
+                
+    def get_joint_observations(self):
+        return self.tt.obs[self.obs_mask,:]
+
+    def get_joint_predictions(self):
+        return self.tt.pred[self.pred_mask,:]
+        
+    def get_joint_jacobian(self):
+        nr_=ctypes.c_int(-99)
+        nc_=ctypes.c_int(-99)
+        nnz_=ctypes.c_int(-99)
+        self.swmp.get_sparse_jacobian_size(ctypes.byref(nr_),ctypes.byref(nc_),ctypes.byref(nnz_))
+        nr=int(nr_.value)
+        nc=int(nc_.value)
+        nnz=int(nnz_.value)
+
+        jrow_=numpy.empty(nnz, dtype=ctypes.c_float)
+        jcol_=numpy.empty(nnz, dtype=ctypes.c_float)
+        jval_=numpy.empty(nnz, dtype=ctypes.c_float)
+
+        self.swmp.get_sparse_jacobian(jrow_.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),jcol_.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),jval_.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),ctypes.byref(nnz_))
+
+        jrow=numpy.array(jrow_)-1
+        jcol=numpy.array(jcol_)-1
+        jval=numpy.array(jval_)
+        
+        jrow_joint=[]
+        jcol_joint=[]
+        jval_joint=[]
+        nr_joint=numpy.sum(self.pred_mask)
+        
+        for i in range(numpy.shape(jval)[0]):
+            if self.pred_mask[int(jrow[i])]:
+                jrow_joint.append(jrow[i])
+                jcol_joint.append(jcol[i])
+                jval_joint.append(jval[i])
+        
+        return scipy.sparse.csr_array((jval_joint, (jrow_joint, jcol_joint)), shape=(nr_joint, nc))
+        
+        pass
 
 
 class VelocityModelGenerator():

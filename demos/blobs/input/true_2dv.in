@@ -18,11 +18,17 @@
 !-------------------------------------------------------------------------------
 ! optionally apply spikes
 !------------------------------------------------------------------------------
-0                   ! number of spikes (0 no anomaly)
+6                   ! number of spikes (0 no anomaly)
+15 8 -1.1			
+14 6 -1.2          
+13 7 -0.95			
+16 8 -0.75
+15 6 -1.1 
+14 7 -1.05
 !-------------------------------------------------------------------------------
 ! optionally apply checkerboard
 !-------------------------------------------------------------------------------
-1                   ! add checkerboard
+0                   ! add checkerboard
 0.55                ! maximum perturbation of vertices
 2                   ! checkerboard size (NxN)
 0                   ! use spacing (0=no,1=yes)

@@ -1,4 +1,4 @@
-for dir in random random_test checkerboard checkerboard_test blobs
+for dir in random  checkerboard  blobs
 do
 cd $dir
 if test -f "run.py"; then
