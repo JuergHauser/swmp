@@ -1,7 +1,28 @@
+#
+#   This file is part of swmp.
+#   Copyright (C) 2023 CSIRO
+#
+#   swmp is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   mps is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with mps. If not, see <http://www.gnu.org/licenses/>.
+#
+#   You may contact the author by:
+#       e-mail:  juerg.hauser@csiro.au
+#
+
 import glob
 import os
 import os.path
-
+import platform
 import ctypes
 
 import numpy
@@ -17,10 +38,11 @@ import cartopy.crs
 import cartopy.feature 
 
 
-# map is a reserved word in python so we shall use karte
 
 def numpy_pointer(array):
     return array.ctypes.data_as(ctypes.POINTER(ctypes.c_float))
+
+
 
 class VelocityModel():
     def __init__(self):
@@ -48,7 +70,10 @@ class WaveFrontTracker():
 
     def __init__(self):
         self.tt=TravelTimeData()
-        self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
+        if 'mac' in platform.platform():
+            self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.dylib")
+        else:
+            self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
         pass
 
     def read_configuration(self,fn_):
@@ -308,7 +333,10 @@ class WaveFrontTracker():
 class VelocityModelGenerator():
 
     def __init__(self):
-        self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
+        if 'mac' in platform.platform():
+            self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.dylib")
+        else:
+            self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
         pass
 
     def read_configuration(self,fn_):
@@ -322,7 +350,10 @@ class VelocityModelGenerator():
 class ObservationGenerator():
 
     def __init__(self):
-        self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
+        if 'mac' in platform.platform():
+            self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.dylib")
+        else:
+            self.swmp=ctypes.cdll.LoadLibrary("../../modules/libswmp.so")
         pass
 
     def read_configuration(self,fn_):

@@ -1,3 +1,23 @@
+!
+!   This file is part of swmp.
+!   Copyright (C) 2023 CSIRO
+!
+!   swmp is free software: you can redistribute it and/or modify
+!   it under the terms of the GNU General Public License as published by
+!   the Free Software Foundation, either version 3 of the License, or
+!   (at your option) any later version.
+!
+!   mps is distributed in the hope that it will be useful,
+!   but WITHOUT ANY WARRANTY; without even the implied warranty of
+!   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+!   GNU General Public License for more details.
+!
+!   You should have received a copy of the GNU General Public License
+!   along with mps. If not, see <http://www.gnu.org/licenses/>.
+!
+!   You may contact the author by:
+!       e-mail:  juerg.hauser@csiro.au
+!
 ! m_functions
 !
 ! This module contains a set of basic functions and subroutines used
@@ -32,7 +52,7 @@ use my_types
 contains
 
   !*****************************************************************************!
-  ! procedures used for standardized error and warning handling                 !
+  ! procedures used for standardised error and warning handling                 !
   !*****************************************************************************!
 
   subroutine nrerror(proc,err)
@@ -115,8 +135,7 @@ contains
       integer :: j,jold
       integer,allocatable ::a(:)
 
-allocate (a(size(ar%ind,2)))
-
+      allocate (a(size(ar%ind,2)))
       a=ar%ind(l,:)
       jold=l
       j=l+l
@@ -153,7 +172,7 @@ allocate (a(size(ar%ind,2)))
   !-----------------------------------------------------------------------------!
 
   subroutine locate_in_list_index(xx,x,j)
-    ! Given a list index xx and a value x, returns a value j sucht that
+    ! Given a list index xx and a value x, returns a value j such that
     ! x is between x(j) and x(j+1)
     ! based on numerical recepies in fortran
     use my_types
@@ -211,11 +230,11 @@ allocate (a(size(ar%ind,2)))
 
     integer :: j
 
-! maybe needed
-if (xx%n==0) then
-bol=.false.
-return
-end if
+    ! maybe needed
+    if (xx%n==0) then
+       bol=.false.
+       return
+    end if
 
     call locate_in_list_index(xx,x,j)
 
@@ -230,7 +249,7 @@ end if
   !-----------------------------------------------------------------------------!
 
   subroutine linear_interp_val(gr,x,y,intp)
-    !performes a 2d linear interpolation for the grid value at the position x,y
+    ! performs a 2d linear interpolation for the grid value at the position x,y
     use my_types
     implicit none
     ! subroutine arguments
@@ -247,7 +266,6 @@ end if
 
     s=(x-((p-1-gr%cn)*gr%dx+gr%x0))/gr%dx
     t=(y-((q-1-gr%cn)*gr%dy+gr%y0))/gr%dy
-
 
     bs(1)=1.0-s
     bs(2)=s
@@ -374,7 +392,6 @@ end if
     ! local variables
     real(kind=dbl)::bs0(4),bt0(4),bs1(4),bt1(4),s,t
     integer :: p,q,m,n,i,j
-
 
     p=int((x-gr%x0)/gr%dx)+1+gr%cn
     q=int((y-gr%y0)/gr%dy)+1+gr%cn
