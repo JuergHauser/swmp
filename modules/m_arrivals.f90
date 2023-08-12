@@ -13,7 +13,7 @@
 !   GNU General Public License for more details.
 !
 !   You should have received a copy of the GNU General Public License
-!   along with mps. If not, see <http://www.gnu.org/licenses/>.
+!   along with swmp. If not, see <http://www.gnu.org/licenses/>.
 !
 !   You may contact the author by:
 !       e-mail:  juerg.hauser@csiro.au
@@ -876,7 +876,7 @@ end if ! recs%stat(i)==1
 
   end subroutine setup_frechet_header
   !--------------------------------------------------------------------------------!
-  subroutine setup_frechet_matrix(vmod,conf)
+  subroutine setup_frechet_matrix_files(vmod,conf)
 
     use my_types
     use my_functions
@@ -895,11 +895,11 @@ end if ! recs%stat(i)==1
 
     call create_frechet_files(freha,conf%ofn_frechet_mat,conf%ofn_frechet_rai)
 
-  end subroutine setup_frechet_matrix
+  end subroutine setup_frechet_matrix_files
 
   !----------------------------------------------------------------------------!
 
-  subroutine calc_frechet_matrix(recs,vmod,conf)
+  subroutine save_frechet_matrix(recs,vmod,conf)
 
     use my_types
     use m_inout
@@ -944,7 +944,7 @@ end if ! recs%stat(i)==1
 
     call write_frechet_header(freha,conf%ofn_frechet_hdr)
 
-  end subroutine calc_frechet_matrix
+  end subroutine save_frechet_matrix
 
 
 

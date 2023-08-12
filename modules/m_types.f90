@@ -13,7 +13,7 @@
 !   GNU General Public License for more details.
 !
 !   You should have received a copy of the GNU General Public License
-!   along with mps. If not, see <http://www.gnu.org/licenses/>.
+!   along with swmp. If not, see <http://www.gnu.org/licenses/>.
 !
 !   You may contact the author by:
 !       e-mail:  juerg.hauser@csiro.au

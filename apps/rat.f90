@@ -57,7 +57,7 @@ program rat
 
   ! setup frechet matrix files if needed
   if (conf%do_frechet==1) then
-     call setup_frechet_matrix(vmod,conf)
+     call setup_frechet_matrix_files(vmod,conf)
   end if
 
 
@@ -127,7 +127,7 @@ program rat
         call analyze_ray_paths_for_point_source(recs,conf)
         ! compute the frechet matrix
         if (conf%do_frechet==1) then
-           call calc_frechet_matrix(recs,vmod,conf)
+           call save_frechet_matrix(recs,vmod,conf)
         end if
      end if
 

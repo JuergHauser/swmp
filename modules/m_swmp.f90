@@ -13,7 +13,7 @@
 !   GNU General Public License for more details.
 !
 !   You should have received a copy of the GNU General Public License
-!   along with mps. If not, see <http://www.gnu.org/licenses/>.
+!   along with swmp. If not, see <http://www.gnu.org/licenses/>.
 !
 !   You may contact the author by:
 !       e-mail:  juerg.hauser@csiro.au
@@ -308,7 +308,7 @@ contains
 
 ! setup frechet matrix files if needed
       if (conf%do_frechet==1) then
-         call setup_frechet_matrix(vmod,conf)
+         call setup_frechet_matrix_files(vmod,conf)
       end if
 
       ! do the computations of the wavefronts for all source points and store
@@ -377,7 +377,7 @@ contains
             call analyze_ray_paths_for_point_source(recs,conf)
             ! compute the frechet matrix
             if (conf%do_frechet==1) then
-               call calc_frechet_matrix(recs,vmod,conf)
+               call save_frechet_matrix(recs,vmod,conf)
             end if
          end if
 
