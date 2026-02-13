@@ -247,11 +247,31 @@ class LibSWMP:
         lib.set_receivers_from_memory.restype = None
 
         # ================================================================
-        # Jacobian (Frechet Matrix)
+        # Ray/Frechet Control Setters
         # ================================================================
-        # Note: The existing Jacobian functions use sparse matrix format
-        # get_sparse_jacobian_size and get_sparse_jacobian exist
-        # TODO: Implement dense matrix extraction if needed
+        lib.set_do_rays.argtypes = [ctypes.c_int32]
+        lib.set_do_rays.restype = None
+
+        lib.set_do_frechet.argtypes = [ctypes.c_int32]
+        lib.set_do_frechet.restype = None
+
+        # ================================================================
+        # Jacobian (Frechet Matrix) - In-Memory Extraction
+        # ================================================================
+        lib.get_sparse_jacobian_size.argtypes = [
+            ctypes.POINTER(ctypes.c_int32),  # nr (rows)
+            ctypes.POINTER(ctypes.c_int32),  # nc (cols)
+            ctypes.POINTER(ctypes.c_int32),  # nnz (non-zeros)
+        ]
+        lib.get_sparse_jacobian_size.restype = None
+
+        lib.get_sparse_jacobian.argtypes = [
+            npct.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS'),  # jrow
+            npct.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS'),  # jcol
+            npct.ndpointer(dtype=np.float32, flags='C_CONTIGUOUS'),  # jval
+            ctypes.c_int32,  # n (nnz)
+        ]
+        lib.get_sparse_jacobian.restype = None
 
     def check_error(self, status):
         """Check return status and raise exception if error occurred.
@@ -532,6 +552,59 @@ class LibSWMP:
         """
         self._lib.set_rearth(ctypes.c_float(rearth))
 
+    def set_do_rays(self, flag):
+        """Enable or disable ray path computation in Fortran.
+
+        Args:
+            flag: True to compute raypaths, False to skip
+        """
+        self._lib.set_do_rays(ctypes.c_int32(1 if flag else 0))
+
+    def set_do_frechet(self, flag):
+        """Enable or disable Fréchet matrix computation in Fortran.
+
+        Args:
+            flag: True to compute Fréchet matrix, False to skip
+        """
+        self._lib.set_do_frechet(ctypes.c_int32(1 if flag else 0))
+
+    def get_jacobian(self):
+        """Extract sparse Jacobian (Fréchet matrix) from memory.
+
+        Returns COO-format sparse data after forward_single_source() has been
+        called with do_frechet enabled.
+
+        Returns:
+            Tuple of (rows, cols, vals, shape) where:
+                rows: int32 array of row indices
+                cols: int32 array of column indices
+                vals: float64 array of values
+                shape: (n_rows, n_cols) tuple
+            Returns None if no Jacobian is available (nnz == 0).
+        """
+        nr = ctypes.c_int32()
+        nc = ctypes.c_int32()
+        nnz = ctypes.c_int32()
+        self._lib.get_sparse_jacobian_size(
+            ctypes.byref(nr), ctypes.byref(nc), ctypes.byref(nnz)
+        )
+
+        if nnz.value == 0:
+            return None
+
+        # Fortran returns all as float32 (COO format)
+        jrow = np.zeros(nnz.value, dtype=np.float32)
+        jcol = np.zeros(nnz.value, dtype=np.float32)
+        jval = np.zeros(nnz.value, dtype=np.float32)
+
+        self._lib.get_sparse_jacobian(jrow, jcol, jval, nnz.value)
+
+        # Convert row/col to int, col from 1-based to 0-based
+        rows = jrow.astype(np.int32) - 1  # 1-based to 0-based
+        cols = jcol.astype(np.int32) - 1  # 1-based to 0-based
+
+        return rows, cols, jval.astype(np.float64), (nr.value, nc.value)
+
     def apply_options(self, options):
         """Apply TrackerOptions to configure all parameters.
 
@@ -552,6 +625,9 @@ class LibSWMP:
         self.set_max_arrivals(options.max_arrivals)
         self.set_coordinate_system(options.coordinate_system)
         self.set_earth_radius(options.earth_radius)
+        # Set ray/frechet computation flags
+        self.set_do_rays(options.extract_raypaths or options.extract_frechet)
+        self.set_do_frechet(options.extract_frechet)
 
     # ================================================================
     # Model, Sources, Receivers Configuration

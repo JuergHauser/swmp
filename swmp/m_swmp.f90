@@ -496,7 +496,11 @@ contains
 
          ! Compute frechet matrix
          if (conf%do_frechet == 1) then
-            call save_frechet_matrix(recs, vmod, conf)
+            if (conf%enable_file_output == 1) then
+               call save_frechet_matrix(recs, vmod, conf)
+            else
+               call compute_frechet_to_crs(recs, vmod, jac)
+            end if
          end if
       end if
 
@@ -620,6 +624,16 @@ contains
       integer(kind=c_int),intent(in),value :: recmode
       conf%recmode=recmode
    end subroutine set_recmode
+
+   subroutine set_do_rays(flag) bind(c, name="set_do_rays")
+      integer(kind=c_int), intent(in), value :: flag
+      conf%do_rays = flag
+   end subroutine set_do_rays
+
+   subroutine set_do_frechet(flag) bind(c, name="set_do_frechet")
+      integer(kind=c_int), intent(in), value :: flag
+      conf%do_frechet = flag
+   end subroutine set_do_frechet
 
 
    subroutine get_model_meta_data(x0,y0,nx,ny,dx,dy,cn) bind(c,name='get_model_meta_data')
@@ -941,7 +955,7 @@ contains
 
    subroutine get_sparse_jacobian(jrow,jcol,jval,n)bind(c,name="get_sparse_jacobian")
 
-      integer(kind=c_int), intent (in) :: n
+      integer(kind=c_int), intent(in), value :: n
       real(kind=c_float), intent(out) :: jrow(n),jcol(n),jval(n)
 
       integer :: i,j
@@ -1032,6 +1046,12 @@ contains
 
    subroutine get_sparse_jacobian_size(nr,nc,nnz) bind(c,name="get_sparse_jacobian_size")
       integer(kind=c_int),intent(out)::nr,nc,nnz
+      if (.not. associated(jac%val)) then
+         nr = 0
+         nc = 0
+         nnz = 0
+         return
+      end if
       nr=jac%n1
       nc=jac%n2
       nnz=size(jac%val,1)
