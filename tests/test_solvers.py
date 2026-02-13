@@ -1,7 +1,11 @@
-"""Tests for pyswmp.solvers module — new API and Jacobian."""
+"""Tests for pyswmp.solvers module — new API, Jacobian, nthreads, and deprecation."""
+
+import warnings
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
+
 from pyswmp import WaveFrontTracker, WaveFrontTrackerResult, TrackerOptions
 from pyswmp.data import VelocityModel2D, Sources, Receivers, create_constant_velocity_model
 
@@ -27,10 +31,7 @@ class TestWaveFrontTrackerNewConstructor:
         assert tracker.n_sources == 0
 
     def test_config_file_positional_type_dispatch(self, simple_velocity_model):
-        """Test that a string first argument is dispatched as config file path."""
-        # We can't actually load a config file in unit tests (Fortran blocks),
-        # but verify the type dispatch works by checking that a VelocityModel2D
-        # passed as first positional is correctly dispatched to model path.
+        """Test that a VelocityModel2D first positional is dispatched to model path."""
         tracker = WaveFrontTracker(simple_velocity_model)
         assert tracker.config_file is None
         assert tracker._model is simple_velocity_model
@@ -58,6 +59,16 @@ class TestWaveFrontTrackerNewConstructor:
         """Test that no arguments raises ValueError."""
         with pytest.raises(ValueError):
             WaveFrontTracker()
+
+    def test_config_file_emits_deprecation_warning(self):
+        """Test that config_file constructor emits DeprecationWarning."""
+        from unittest.mock import patch
+
+        with pytest.warns(DeprecationWarning, match="config_file is deprecated"):
+            with patch("pyswmp.solvers.LibSWMP") as MockLib:
+                mock_lib = MockLib.return_value
+                mock_lib.get_n_sources.return_value = 0
+                WaveFrontTracker(config_file="/fake/config.in")
 
 
 class TestForwardSignature:
@@ -87,8 +98,6 @@ class TestForwardSignature:
             receivers=simple_receivers,
             options=default_options,
         )
-        # forward() without args should work since sources/receivers are stored
-        # (will fail at Fortran level in unit test, but tests the Python dispatch)
         assert tracker.n_sources > 0
 
     def test_numpy_array_auto_wrapping(self, simple_velocity_model, default_options):
@@ -98,13 +107,122 @@ class TestForwardSignature:
         source_arr = np.array([[135.0, -25.0]])
         recv_arr = np.array([[120.0, -30.0], [130.0, -25.0]])
 
-        # _set_sources_and_receivers should handle numpy arrays
         tracker._set_sources_and_receivers(source_arr, recv_arr)
 
         assert tracker.n_sources == 1
         assert isinstance(tracker._sources, Sources)
         assert isinstance(tracker._receivers, Receivers)
         assert tracker._receivers.n_receivers == 2
+
+
+class TestPoolDispatch:
+    """Tests for pool-based parallel dispatch logic."""
+
+    def test_thread_pool_rejected(
+        self, simple_velocity_model, simple_sources, simple_receivers, default_options
+    ):
+        """Test that ThreadPoolExecutor is rejected."""
+        tracker = WaveFrontTracker(
+            model=simple_velocity_model,
+            sources=simple_sources,
+            receivers=simple_receivers,
+            options=default_options,
+        )
+        from concurrent.futures import ThreadPoolExecutor
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            with pytest.raises(ValueError, match="ThreadPoolExecutor is not supported"):
+                tracker.forward(pool=pool)
+
+    def test_pool_requires_file_free(self, simple_velocity_model, default_options):
+        """Test that pool with file-free mode is accepted (no ValueError about file-free)."""
+        tracker = WaveFrontTracker(
+            model=simple_velocity_model,
+            options=default_options,
+        )
+        assert tracker._file_free is True
+
+
+class TestSerializationFormat:
+    """Tests for _serialize_data returning numpy arrays."""
+
+    def test_serialize_returns_numpy_arrays(
+        self, simple_velocity_model, simple_sources, simple_receivers, default_options
+    ):
+        """Test that serialized data contains numpy arrays, not Python lists."""
+        tracker = WaveFrontTracker(
+            model=simple_velocity_model,
+            sources=simple_sources,
+            receivers=simple_receivers,
+            options=default_options,
+        )
+
+        model_dict, sources_dict, receivers_dict = tracker._serialize_data()
+
+        assert isinstance(model_dict['velocities'], np.ndarray)
+        assert isinstance(sources_dict['positions'], np.ndarray)
+        assert isinstance(receivers_dict['positions'], np.ndarray)
+
+    def test_serialize_preserves_data(
+        self, simple_velocity_model, simple_sources, simple_receivers, default_options
+    ):
+        """Test that serialized data matches original."""
+        tracker = WaveFrontTracker(
+            model=simple_velocity_model,
+            sources=simple_sources,
+            receivers=simple_receivers,
+            options=default_options,
+        )
+
+        model_dict, sources_dict, receivers_dict = tracker._serialize_data()
+
+        np.testing.assert_array_equal(model_dict['velocities'], simple_velocity_model.velocities)
+        assert model_dict['x0'] == simple_velocity_model.x0
+        assert model_dict['dx'] == simple_velocity_model.dx
+        np.testing.assert_array_equal(sources_dict['positions'], simple_sources.positions)
+        np.testing.assert_array_equal(receivers_dict['positions'], simple_receivers.positions)
+
+
+class TestOptionsToDict:
+    """Tests for TrackerOptions.to_dict() excluding file paths."""
+
+    def test_to_dict_excludes_file_paths(self):
+        """Test that to_dict() does not include file path fields."""
+        opts = TrackerOptions(
+            velocity_file="/some/path.vel",
+            sources_file="/some/sources.dat",
+            receivers_file="/some/receivers.dat",
+            receiver_mode_file="/some/recmode.dat",
+        )
+        d = opts.to_dict()
+
+        assert 'velocity_file' not in d
+        assert 'sources_file' not in d
+        assert 'receivers_file' not in d
+        assert 'receiver_mode_file' not in d
+
+    def test_to_dict_includes_all_numeric_fields(self):
+        """Test that to_dict() includes all numeric/bool configuration fields."""
+        opts = TrackerOptions()
+        d = opts.to_dict()
+
+        expected_keys = {
+            'earth_radius', 'coordinate_system', 'dt', 'max_iterations',
+            'n_bichar_nodes', 'ode_solver', 'interpolator', 'computation_mode',
+            'max_arrivals', 'source_specific_receivers', 'extract_raypaths',
+            'extract_wavefronts', 'extract_frechet', 'raypath_storage',
+            'wavefront_interval',
+        }
+        assert set(d.keys()) == expected_keys
+
+    def test_to_dict_roundtrips(self):
+        """Test that to_dict() output can reconstruct TrackerOptions."""
+        opts = TrackerOptions(dt=2.5, max_iterations=1000, coordinate_system=2)
+        d = opts.to_dict()
+        opts2 = TrackerOptions(**d)
+
+        assert opts2.dt == opts.dt
+        assert opts2.max_iterations == opts.max_iterations
+        assert opts2.coordinate_system == opts.coordinate_system
 
 
 class TestJacobianResultFields:
@@ -245,7 +363,6 @@ class TestJacobianResultFields:
 
     def test_arrival_indexing(self):
         """Test that Jacobian rows correspond to arrival indexing."""
-        # Jacobian rows should correspond 1:1 with (source, receiver, arrival) tuples
         result = WaveFrontTrackerResult(
             source_ids=np.array([1, 1, 1], dtype=np.int32),
             receiver_ids=np.array([1, 1, 2], dtype=np.int32),
@@ -259,9 +376,6 @@ class TestJacobianResultFields:
             jacobian_shape=(3, 100),
         )
 
-        # Row 0 → arrival (source=1, receiver=1, arrival=1)
-        # Row 1 → arrival (source=1, receiver=1, arrival=2)
-        # Row 2 → arrival (source=1, receiver=2, arrival=1)
         assert result.jacobian_shape[0] == len(result.travel_times)
         assert result.source_ids[0] == 1
         assert result.receiver_ids[0] == 1
@@ -353,3 +467,24 @@ class TestIntegrationJacobian:
         assert J.shape[0] == len(result.travel_times)
         assert J.shape[1] > 0
         assert J.nnz > 0
+
+    def test_forward_parallel_pool(
+        self, simple_velocity_model, simple_sources, simple_receivers
+    ):
+        """Test forward with ProcessPoolExecutor produces same results as sequential."""
+        from concurrent.futures import ProcessPoolExecutor
+
+        opts = TrackerOptions(coordinate_system=2)
+
+        tracker = WaveFrontTracker(simple_velocity_model, opts)
+
+        result_seq = tracker.forward(simple_sources, simple_receivers)
+        with ProcessPoolExecutor(max_workers=2) as pool:
+            result_par = tracker.forward(simple_sources, simple_receivers, pool=pool)
+
+        assert len(result_seq.travel_times) == len(result_par.travel_times)
+        np.testing.assert_allclose(
+            np.sort(result_seq.travel_times),
+            np.sort(result_par.travel_times),
+            rtol=1e-5,
+        )

@@ -7,7 +7,7 @@ pool-based parallel execution following the pyfm2d pattern.
 from pathlib import Path
 from functools import reduce
 import operator
-from typing import Optional, Dict, List, Union
+from typing import Optional
 import warnings
 
 import numpy as np
@@ -17,27 +17,22 @@ from .results import WaveFrontTrackerResult
 
 
 def _calc_single_source_worker(
-    config_file, source_id, enable_raypaths, enable_wavefronts, options_dict=None,
-    model_dict=None, sources_dict=None, receivers_dict=None, enable_frechet=False,
+    model_dict, sources_dict, receivers_dict, options_dict,
+    source_id, enable_raypaths, enable_wavefronts, enable_frechet=False,
 ):
     """Worker function for parallel source processing.
 
-    This function is called by pool executors to process a single source.
-    Each worker creates an independent LibSWMP instance to avoid shared memory issues.
-
-    Supports both file-based and file-free modes:
-    - File-based: config_file provided, loads from disk
-    - File-free: model_dict, sources_dict, receivers_dict provided, all in-memory
+    Each worker creates an independent LibSWMP instance to avoid shared memory
+    issues with Fortran module-level state.
 
     Args:
-        config_file: Path to RAT configuration file (file-based mode)
+        model_dict: Dict with model data (velocities, x0, y0, dx, dy, cushion_nodes)
+        sources_dict: Dict with sources data (positions, source_type)
+        receivers_dict: Dict with receivers data (positions)
+        options_dict: Dict of TrackerOptions parameters
         source_id: Source ID to process (1-based)
         enable_raypaths: Whether to extract raypaths
         enable_wavefronts: Whether to extract wavefronts
-        options_dict: Optional dict of TrackerOptions parameters
-        model_dict: Dict with model data (file-free mode)
-        sources_dict: Dict with sources data (file-free mode)
-        receivers_dict: Dict with receivers data (file-free mode)
         enable_frechet: Whether to extract Frechet/Jacobian matrix
 
     Returns:
@@ -47,44 +42,33 @@ def _calc_single_source_worker(
     from .data import VelocityModel2D, Sources, Receivers
     import numpy as np
 
-    # Create independent library instance for this worker
     lib = LibSWMP()
 
     try:
-        # Initialize based on mode
-        if config_file:
-            # File-based mode: Load configuration from disk
-            lib.read_configuration(config_file)
-        elif model_dict and sources_dict and receivers_dict:
-            # File-free mode: Set everything from memory
-            # Reconstruct model
-            model = VelocityModel2D(
-                velocities=np.array(model_dict['velocities'], dtype=np.float32),
-                x0=model_dict['x0'],
-                y0=model_dict['y0'],
-                dx=model_dict['dx'],
-                dy=model_dict['dy'],
-                cushion_nodes=model_dict['cushion_nodes']
-            )
-            lib.set_velocity_model(model)
+        # Reconstruct data objects from dicts
+        model = VelocityModel2D(
+            velocities=np.asarray(model_dict['velocities'], dtype=np.float32),
+            x0=model_dict['x0'],
+            y0=model_dict['y0'],
+            dx=model_dict['dx'],
+            dy=model_dict['dy'],
+            cushion_nodes=model_dict['cushion_nodes'],
+        )
+        lib.set_velocity_model(model)
 
-            # Reconstruct sources
-            sources = Sources(
-                positions=np.array(sources_dict['positions'], dtype=np.float64),
-                source_type=sources_dict['source_type']
-            )
-            lib.set_sources(sources)
+        sources = Sources(
+            positions=np.asarray(sources_dict['positions'], dtype=np.float64),
+            source_type=sources_dict['source_type'],
+        )
+        lib.set_sources(sources)
 
-            # Reconstruct receivers
-            receivers = Receivers(
-                positions=np.array(receivers_dict['positions'], dtype=np.float64)
-            )
-            max_arrivals = options_dict.get('max_arrivals', 10) if options_dict else 10
-            lib.set_receivers(receivers, max_arrivals=max_arrivals)
-        else:
-            raise ValueError("Must provide either config_file or (model_dict, sources_dict, receivers_dict)")
+        receivers = Receivers(
+            positions=np.asarray(receivers_dict['positions'], dtype=np.float64),
+        )
+        max_arrivals = options_dict.get('max_arrivals', 10) if options_dict else 10
+        lib.set_receivers(receivers, max_arrivals=max_arrivals)
 
-        # Apply custom options if provided (overrides config file settings)
+        # Apply options
         if options_dict is not None:
             opts = TrackerOptions(**options_dict)
             lib.apply_options(opts)
@@ -93,7 +77,6 @@ def _calc_single_source_worker(
         lib.set_file_output(False)
 
         # Ensure Fortran ray/frechet flags are set correctly
-        # (apply_options handles this, but for file-based mode without options we set explicitly)
         if enable_raypaths or enable_frechet:
             lib.set_do_rays(True)
         if enable_frechet:
@@ -143,8 +126,12 @@ def _calc_single_source_worker(
         )
 
     except Exception as e:
-        # Wrap exceptions with source context
         raise RuntimeError(f"Error processing source {source_id}: {e}") from e
+
+
+def _worker_wrapper(args):
+    """Wrapper for schwimmbad/map-style pools that require a single-argument callable."""
+    return _calc_single_source_worker(*args)
 
 
 class WaveFrontTracker:
@@ -161,7 +148,7 @@ class WaveFrontTracker:
         >>> receivers = pyswmp.Receivers(np.array([[120.0, -30.0]]))
         >>> result = tracker.forward(source, receivers)
 
-    Legacy API (file-based):
+    Legacy API (file-based, deprecated):
         >>> tracker = WaveFrontTracker(config_file='config.in')
         >>> result = tracker.forward()
 
@@ -188,7 +175,7 @@ class WaveFrontTracker:
            >>> tracker = WaveFrontTracker(model, options)
            >>> result = tracker.forward(source, receivers)
 
-        2. Legacy file-based:
+        2. Legacy file-based (deprecated):
            >>> tracker = WaveFrontTracker('config.in')
 
         3. Legacy file-free (all at construction):
@@ -232,7 +219,13 @@ class WaveFrontTracker:
 
         # Determine initialization mode
         if config_file:
-            # Traditional file-based initialization
+            # Deprecated file-based initialization
+            warnings.warn(
+                "File-based initialization via config_file is deprecated. "
+                "Use the file-free API with VelocityModel2D, Sources, and Receivers instead.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
             self._lib.read_configuration(self.config_file)
             self._file_free = False
             self._model = None
@@ -272,6 +265,18 @@ class WaveFrontTracker:
         else:
             self.n_sources = 0
 
+    def _require_file_free(self, operation):
+        """Raise ValueError if not in file-free mode.
+
+        Args:
+            operation: Description of the operation requiring file-free mode
+        """
+        if not self._file_free:
+            raise ValueError(
+                f"{operation} requires the file-free API. "
+                "Construct WaveFrontTracker with a VelocityModel2D instead of config_file."
+            )
+
     def _set_sources_and_receivers(self, source, receivers):
         """Set sources and receivers on the library instance.
 
@@ -306,31 +311,27 @@ class WaveFrontTracker:
     def _serialize_data(self):
         """Serialize model, sources, receivers for worker processes.
 
-        Returns:
-            Tuple of (model_dict, sources_dict, receivers_dict) or (None, None, None)
-        """
-        if not self._file_free:
-            return None, None, None
+        Returns numpy arrays directly (they pickle efficiently).
 
-        # Serialize model
+        Returns:
+            Tuple of (model_dict, sources_dict, receivers_dict)
+        """
         model_dict = {
-            'velocities': self._model.velocities.tolist(),
+            'velocities': self._model.velocities,
             'x0': self._model.x0,
             'y0': self._model.y0,
             'dx': self._model.dx,
             'dy': self._model.dy,
-            'cushion_nodes': self._model.cushion_nodes
+            'cushion_nodes': self._model.cushion_nodes,
         }
 
-        # Serialize sources
         sources_dict = {
-            'positions': self._sources.positions.tolist(),
-            'source_type': self._sources.source_type
+            'positions': self._sources.positions,
+            'source_type': self._sources.source_type,
         }
 
-        # Serialize receivers
         receivers_dict = {
-            'positions': self._receivers.positions.tolist()
+            'positions': self._receivers.positions,
         }
 
         return model_dict, sources_dict, receivers_dict
@@ -342,14 +343,11 @@ class WaveFrontTracker:
             pool: Pool executor instance
 
         Returns:
-            Pool type string ('process', 'schwimmbad', 'thread', or None)
+            Pool type string ('process', 'schwimmbad', or 'thread')
 
         Raises:
             ValueError: If pool type is incompatible (e.g., ThreadPoolExecutor)
         """
-        if pool is None:
-            return None
-
         pool_type = type(pool).__name__
         module = type(pool).__module__
 
@@ -361,18 +359,18 @@ class WaveFrontTracker:
                 "processes. Use ProcessPoolExecutor or schwimmbad pools instead."
             )
 
-        # Detect schwimmbad pools
-        if 'schwimmbad' in module:
-            return 'schwimmbad'
-
         # Detect concurrent.futures ProcessPoolExecutor
         if 'concurrent.futures' in module and 'Process' in pool_type:
             return 'process'
 
-        # Unknown pool type - warn but try to proceed
+        # Detect schwimmbad pools
+        if 'schwimmbad' in module:
+            return 'schwimmbad'
+
+        # Unknown pool type - warn but try to proceed with map interface
         warnings.warn(
             f"Unknown pool type: {pool_type} from {module}. "
-            "Attempting to use schwimmbad-style map() interface. "
+            "Attempting to use map() interface. "
             "If this fails, use ProcessPoolExecutor or schwimmbad pools."
         )
         return 'schwimmbad'
@@ -412,6 +410,7 @@ class WaveFrontTracker:
             source: Sources object or np.ndarray of shape (n, 2). Optional for legacy API.
             receivers: Receivers object or np.ndarray of shape (n, 2). Optional for legacy API.
             pool: Optional pool executor for parallel execution.
+                Supports ProcessPoolExecutor and schwimmbad pools.
             extract_raypaths: Whether to extract raypath data. If None, uses options.
             extract_wavefronts: Whether to extract wavefront data. If None, uses options.
 
@@ -435,92 +434,100 @@ class WaveFrontTracker:
             extract_raypaths, extract_wavefronts
         )
 
-        if pool is None:
-            return self._forward_sequential(do_raypaths, do_wavefronts, do_frechet)
+        # Dispatch: pool or sequential
+        if pool is not None:
+            self._require_file_free("pool-based parallel execution")
+            return self._forward_parallel(pool, do_raypaths, do_wavefronts, do_frechet)
+        else:
+            if self._file_free:
+                return self._forward_sequential(do_raypaths, do_wavefronts, do_frechet)
+            else:
+                return self._forward_sequential_file_based(do_raypaths, do_wavefronts, do_frechet)
+
+    def _forward_sequential(self, extract_raypaths, extract_wavefronts, extract_frechet):
+        """Sequential execution using in-memory worker (file-free mode)."""
+        model_dict, sources_dict, receivers_dict = self._serialize_data()
+
+        results = []
+        for source_id in range(1, self.n_sources + 1):
+            result = _calc_single_source_worker(
+                model_dict, sources_dict, receivers_dict, self._options_dict,
+                source_id, extract_raypaths, extract_wavefronts, extract_frechet,
+            )
+            results.append(result)
+
+        return reduce(operator.add, results)
+
+    def _forward_sequential_file_based(self, extract_raypaths, extract_wavefronts, extract_frechet):
+        """Sequential execution using the library instance directly (deprecated config_file mode)."""
+        # Disable file output
+        self._lib.set_file_output(False)
+
+        # Ensure flags
+        if extract_raypaths or extract_frechet:
+            self._lib.set_do_rays(True)
+        if extract_frechet:
+            self._lib.set_do_frechet(True)
+
+        results = []
+        for source_id in range(1, self.n_sources + 1):
+            self._lib.run_single_source(source_id)
+
+            source_ids, receiver_ids, arrival_nums, times, azis, spfs = self._lib.get_arrivals(source_id)
+
+            raypaths = []
+            if extract_raypaths:
+                raypaths = self._lib.get_raypaths(source_id)
+
+            wavefronts = {}
+            if extract_wavefronts:
+                wf_list = self._lib.get_wavefronts(source_id)
+                if wf_list:
+                    wavefronts[source_id] = wf_list
+
+            jacobian_rows = jacobian_cols = jacobian_vals = jacobian_shape = None
+            if extract_frechet:
+                jac_data = self._lib.get_jacobian()
+                if jac_data is not None:
+                    jacobian_rows, jacobian_cols, jacobian_vals, jacobian_shape = jac_data
+
+            results.append(WaveFrontTrackerResult(
+                source_ids=source_ids,
+                receiver_ids=receiver_ids,
+                arrival_numbers=arrival_nums,
+                travel_times=times,
+                azimuths=azis,
+                spreading_factors=spfs,
+                raypaths=raypaths,
+                wavefronts=wavefronts,
+                jacobian_rows=jacobian_rows,
+                jacobian_cols=jacobian_cols,
+                jacobian_vals=jacobian_vals,
+                jacobian_shape=jacobian_shape,
+            ))
+
+        return reduce(operator.add, results)
+
+    def _forward_parallel(self, pool, extract_raypaths, extract_wavefronts, extract_frechet):
+        """Parallel execution using a user-provided pool executor."""
+        model_dict, sources_dict, receivers_dict = self._serialize_data()
+
+        worker_args = [
+            (model_dict, sources_dict, receivers_dict, self._options_dict,
+             sid, extract_raypaths, extract_wavefronts, extract_frechet)
+            for sid in range(1, self.n_sources + 1)
+        ]
 
         pool_type = self._detect_pool_type(pool)
 
         if pool_type == 'process':
-            return self._forward_concurrent_futures(pool, do_raypaths, do_wavefronts, do_frechet)
-        elif pool_type == 'schwimmbad':
-            return self._forward_schwimmbad(pool, do_raypaths, do_wavefronts, do_frechet)
+            # ProcessPoolExecutor: use submit()
+            futures = [pool.submit(_calc_single_source_worker, *a) for a in worker_args]
+            results = [f.result() for f in futures]
         else:
-            warnings.warn("Could not detect pool type, falling back to sequential execution")
-            return self._forward_sequential(do_raypaths, do_wavefronts, do_frechet)
+            # schwimmbad / map-style pool
+            results = list(pool.map(_worker_wrapper, worker_args))
 
-    def _forward_sequential(self, extract_raypaths, extract_wavefronts, extract_frechet):
-        """Sequential execution (no parallelism)."""
-        results = []
-
-        # Get serialized data for file-free mode
-        model_dict, sources_dict, receivers_dict = self._serialize_data()
-
-        for source_id in range(1, self.n_sources + 1):
-            result = _calc_single_source_worker(
-                self.config_file,
-                source_id,
-                extract_raypaths,
-                extract_wavefronts,
-                self._options_dict,
-                model_dict,
-                sources_dict,
-                receivers_dict,
-                extract_frechet,
-            )
-            results.append(result)
-
-        # Merge results using __add__
-        return reduce(operator.add, results)
-
-    def _forward_concurrent_futures(self, pool, extract_raypaths, extract_wavefronts, extract_frechet):
-        """Parallel execution using concurrent.futures.ProcessPoolExecutor."""
-        # Get serialized data for file-free mode
-        model_dict, sources_dict, receivers_dict = self._serialize_data()
-
-        # Submit tasks for all sources
-        futures = []
-        for source_id in range(1, self.n_sources + 1):
-            future = pool.submit(
-                _calc_single_source_worker,
-                self.config_file,
-                source_id,
-                extract_raypaths,
-                extract_wavefronts,
-                self._options_dict,
-                model_dict,
-                sources_dict,
-                receivers_dict,
-                extract_frechet,
-            )
-            futures.append(future)
-
-        # Collect results as they complete
-        results = [future.result() for future in futures]
-
-        # Merge using __add__
-        return reduce(operator.add, results)
-
-    def _forward_schwimmbad(self, pool, extract_raypaths, extract_wavefronts, extract_frechet):
-        """Parallel execution using schwimmbad pools."""
-        # Get serialized data for file-free mode
-        model_dict, sources_dict, receivers_dict = self._serialize_data()
-
-        # Prepare arguments for all sources
-        source_ids = range(1, self.n_sources + 1)
-        args = [
-            (self.config_file, sid, extract_raypaths, extract_wavefronts,
-             self._options_dict, model_dict, sources_dict, receivers_dict,
-             extract_frechet)
-            for sid in source_ids
-        ]
-
-        # Map worker function over sources
-        def worker_wrapper(args_tuple):
-            return _calc_single_source_worker(*args_tuple)
-
-        results = list(pool.map(worker_wrapper, args))
-
-        # Merge using __add__
         return reduce(operator.add, results)
 
     def forward_single_source(
@@ -548,20 +555,53 @@ class WaveFrontTracker:
             extract_raypaths, extract_wavefronts
         )
 
-        # Get serialized data for file-free mode
-        model_dict, sources_dict, receivers_dict = self._serialize_data()
+        if self._file_free:
+            model_dict, sources_dict, receivers_dict = self._serialize_data()
+            return _calc_single_source_worker(
+                model_dict, sources_dict, receivers_dict, self._options_dict,
+                source_id, do_raypaths, do_wavefronts, do_frechet,
+            )
+        else:
+            # Deprecated file-based path: use library directly
+            self._lib.set_file_output(False)
+            if do_raypaths or do_frechet:
+                self._lib.set_do_rays(True)
+            if do_frechet:
+                self._lib.set_do_frechet(True)
 
-        return _calc_single_source_worker(
-            self.config_file,
-            source_id,
-            do_raypaths,
-            do_wavefronts,
-            self._options_dict,
-            model_dict,
-            sources_dict,
-            receivers_dict,
-            do_frechet,
-        )
+            self._lib.run_single_source(source_id)
+            source_ids, receiver_ids, arrival_nums, times, azis, spfs = self._lib.get_arrivals(source_id)
+
+            raypaths = []
+            if do_raypaths:
+                raypaths = self._lib.get_raypaths(source_id)
+
+            wavefronts = {}
+            if do_wavefronts:
+                wf_list = self._lib.get_wavefronts(source_id)
+                if wf_list:
+                    wavefronts[source_id] = wf_list
+
+            jacobian_rows = jacobian_cols = jacobian_vals = jacobian_shape = None
+            if do_frechet:
+                jac_data = self._lib.get_jacobian()
+                if jac_data is not None:
+                    jacobian_rows, jacobian_cols, jacobian_vals, jacobian_shape = jac_data
+
+            return WaveFrontTrackerResult(
+                source_ids=source_ids,
+                receiver_ids=receiver_ids,
+                arrival_numbers=arrival_nums,
+                travel_times=times,
+                azimuths=azis,
+                spreading_factors=spfs,
+                raypaths=raypaths,
+                wavefronts=wavefronts,
+                jacobian_rows=jacobian_rows,
+                jacobian_cols=jacobian_cols,
+                jacobian_vals=jacobian_vals,
+                jacobian_shape=jacobian_shape,
+            )
 
     def __repr__(self) -> str:
         """String representation."""
