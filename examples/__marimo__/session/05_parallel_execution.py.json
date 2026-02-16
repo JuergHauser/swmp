@@ -1,0 +1,122 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.7"
+  },
+  "cells": [
+    {
+      "id": "MJUe",
+      "code_hash": "4c60a39ac314c68db22c25b5a7d495a7",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"parallel-execution\">Parallel Execution</h1>\n<span class=\"paragraph\">When tracing rays from multiple sources, each source can be processed\nindependently. pyswmp supports parallel execution via a user-provided\n<code>concurrent.futures</code> pool.</span>\n<span class=\"paragraph\"><strong>Why processes, not threads?</strong> The Fortran core uses <strong>module-level state</strong>\n(velocity model, receivers, wavefronts, etc.). Each worker must load its own\nindependent <code>libswmp</code> instance, so <code>ProcessPoolExecutor</code> is required \u2014\n<code>ThreadPoolExecutor</code> would share state and produce incorrect results.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "924ec6c1a17e364c59ee20085eccc3dd",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"setup-multiple-sources\">Setup: multiple sources</h2>\n<span class=\"paragraph\">We create 8 point sources spread across Australia with a grid of receivers.\nMore sources = more benefit from parallelism.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "377d5dbc643a63bdbd9485bb08b8d19e",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"sequential-execution-baseline\">Sequential execution (baseline)</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "a19e151ee250bbe5ee7065fd51acdd49",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"parallel-execution\">Parallel execution</h2>\n<span class=\"paragraph\">Pass a <code>ProcessPoolExecutor</code> to <code>forward(pool=...)</code>. Each source is\ndispatched to a separate worker process that creates its own Fortran\nlibrary instance.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "e938545efd4b0b42d89b1551735197f2",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"compare-results\">Compare results</h2></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "d54b1d4bd377b0c2023b0f40b941713a",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"summary\">Summary</h2>\n<ul>\n<li>Pass a <code>ProcessPoolExecutor</code> (or schwimmbad pool for MPI) to\n  <code>tracker.forward(sources, receivers, pool=pool)</code></li>\n<li>Each worker creates an independent Fortran library instance \u2014\n  <code>ThreadPoolExecutor</code> is <strong>not supported</strong></li>\n<li>Results are identical regardless of execution mode</li>\n<li>Speedup depends on the number of sources and available cores</li>\n</ul>\n<span class=\"paragraph\">For HPC environments with MPI, use a <code>schwimmbad.MPIPool</code> instead:</span>\n<div class=\"language-python codehilite\"><pre><span></span><code><span class=\"kn\">from</span><span class=\"w\"> </span><span class=\"nn\">schwimmbad</span><span class=\"w\"> </span><span class=\"kn\">import</span> <span class=\"n\">MPIPool</span>\n<span class=\"k\">with</span> <span class=\"n\">MPIPool</span><span class=\"p\">()</span> <span class=\"k\">as</span> <span class=\"n\">pool</span><span class=\"p\">:</span>\n    <span class=\"n\">result</span> <span class=\"o\">=</span> <span class=\"n\">tracker</span><span class=\"o\">.</span><span class=\"n\">forward</span><span class=\"p\">(</span><span class=\"n\">sources</span><span class=\"p\">,</span> <span class=\"n\">receivers</span><span class=\"p\">,</span> <span class=\"n\">pool</span><span class=\"o\">=</span><span class=\"n\">pool</span><span class=\"p\">)</span>\n</code></pre></div></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Hbol",
+      "code_hash": "1d0db38904205bec4d6f6f6a1f6cec3e",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "a648805482d18948a08d76b6fcc67835",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "1bb53740d8764429509694e8966d534d",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Xref",
+      "code_hash": "a0fcf775da7f8b30f64efde7291e0b06",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "1c31d4cf46e60c56769635f332446251",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "0573e22d18ea8449f5573ba9b65bfd53",
+      "outputs": [],
+      "console": []
+    }
+  ]
+}

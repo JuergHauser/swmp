@@ -1,0 +1,5 @@
+enable_language(Fortran)
+file ( GLOB swmp_fortran_functions *.f* )
+find_package(Python REQUIRED COMPONENTS Interpreter Development.Module)
+Python_add_library(libswmp MODULE WITH_SOABI ${swmp_fortran_functions})
+install(TARGETS libswmp DESTINATION ./pyswmp)

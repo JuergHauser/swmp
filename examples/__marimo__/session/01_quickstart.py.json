@@ -1,0 +1,179 @@
+{
+  "version": "1",
+  "metadata": {
+    "marimo_version": "0.19.7"
+  },
+  "cells": [
+    {
+      "id": "MJUe",
+      "code_hash": "0b9624fb214263f8a8ebd052ca5654e4",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h1 id=\"getting-started-with-pyswmp\">Getting started with pyswmp</h1>\n<span class=\"paragraph\"><strong>pyswmp</strong> is a Python-wrapped Fortran library for surface wave multipathing\nray tracing on spherical and Cartesian coordinate systems\n(Hauser et al., 2008).</span>\n<span class=\"paragraph\">This notebook walks through the basic workflow:</span>\n<ol>\n<li>Create a velocity model</li>\n<li>Define sources and receivers</li>\n<li>Configure ray tracing options</li>\n<li>Run forward modelling</li>\n<li>Inspect and visualise results</li>\n</ol>\n<span class=\"paragraph\">All using the <strong>file-free API</strong> \u2014 no disk I/O required.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "bkHC",
+      "code_hash": "47d2fb9e3bdd82ef00e9484f33bd4c37",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"1-create-a-velocity-model\">1. Create a velocity model</h2>\n<span class=\"paragraph\"><code>create_constant_velocity_model()</code> builds a 2D grid with uniform velocity.\nThe model covers a region of Australia at 0.5\u00b0 spacing with a velocity of\n3.5 km/s (typical Rayleigh wave group velocity at ~20 s period).</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "PKri",
+      "code_hash": "6709cd3cc48520ee9578e7e4b4db4431",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"2-define-sources-and-receivers\">2. Define sources and receivers</h2>\n<span class=\"paragraph\">Sources and receivers are specified as <code>(longitude, latitude)</code> arrays.\n<code>source_type=1</code> indicates point sources.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "SFPL",
+      "code_hash": "d58bb12d657d7dd3b6f75ff57368671e",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"3-configure-ray-tracing-options\">3. Configure ray tracing options</h2>\n<span class=\"paragraph\"><code>TrackerOptions</code> controls the numerical solver, coordinate system, and\noutput extraction. Key parameters:</span>\n<ul>\n<li><code>coordinate_system=2</code> \u2014 spherical coordinates (longitude/latitude)</li>\n<li><code>dt</code> \u2014 ODE time step size</li>\n<li><code>max_iterations</code> \u2014 maximum wavefront propagation steps</li>\n<li><code>extract_raypaths=True</code> \u2014 store individual ray paths for plotting</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "RGSE",
+      "code_hash": "6a2eea9d5d580f80dc8083b19acd9a00",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"4-run-forward-modelling\">4. Run forward modelling</h2>\n<span class=\"paragraph\">Create a <code>WaveFrontTracker</code> with the model and options, then call\n<code>forward(sources, receivers)</code>. The result contains travel times, azimuths,\narrival numbers, and (optionally) ray paths.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "emfo",
+      "code_hash": "59ba365136324e3aefff96bb7e6fbb55",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"5-inspect-results\">5. Inspect results</h2>\n<h3 id=\"dataframe-view\">DataFrame view</h3>\n<span class=\"paragraph\"><code>to_dataframe()</code> converts results to a pandas DataFrame with columns:\n<code>source</code>, <code>receiver</code>, <code>arrival</code>, <code>time</code>, <code>azimuth</code>, <code>spreading</code>.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "nWHF",
+      "code_hash": "310dc36487a3333afb00cfc41714c533",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"ray-path-visualisation\">Ray path visualisation</h3>\n<span class=\"paragraph\">The <code>Visualisation</code> class plots ray paths overlaid on the velocity model.\nEach source is coloured differently.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "ZHCJ",
+      "code_hash": "d1c0e3a9531390c0347b18c0193e19fc",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h3 id=\"travel-time-distribution\">Travel time distribution</h3>\n<span class=\"paragraph\">For a constant velocity model and a single source, travel times\nshould be proportional to source\u2013receiver distance.</span></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "qnkX",
+      "code_hash": "e687f2e1bfdbda9aed9982f6d618c033",
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/markdown": "<span class=\"markdown prose dark:prose-invert contents\"><h2 id=\"summary\">Summary</h2>\n<span class=\"paragraph\">The complete file-free workflow in four lines:</span>\n<div class=\"language-python codehilite\"><pre><span></span><code><span class=\"n\">model</span>   <span class=\"o\">=</span> <span class=\"n\">pyswmp</span><span class=\"o\">.</span><span class=\"n\">create_constant_velocity_model</span><span class=\"p\">(</span><span class=\"o\">...</span><span class=\"p\">)</span>\n<span class=\"n\">opts</span>    <span class=\"o\">=</span> <span class=\"n\">pyswmp</span><span class=\"o\">.</span><span class=\"n\">TrackerOptions</span><span class=\"p\">(</span><span class=\"n\">coordinate_system</span><span class=\"o\">=</span><span class=\"mi\">2</span><span class=\"p\">,</span> <span class=\"n\">extract_raypaths</span><span class=\"o\">=</span><span class=\"kc\">True</span><span class=\"p\">)</span>\n<span class=\"n\">tracker</span> <span class=\"o\">=</span> <span class=\"n\">pyswmp</span><span class=\"o\">.</span><span class=\"n\">WaveFrontTracker</span><span class=\"p\">(</span><span class=\"n\">model</span><span class=\"p\">,</span> <span class=\"n\">opts</span><span class=\"p\">)</span>\n<span class=\"n\">result</span>  <span class=\"o\">=</span> <span class=\"n\">tracker</span><span class=\"o\">.</span><span class=\"n\">forward</span><span class=\"p\">(</span><span class=\"n\">sources</span><span class=\"p\">,</span> <span class=\"n\">receivers</span><span class=\"p\">)</span>\n</code></pre></div>\n<span class=\"paragraph\">Next notebooks cover:</span>\n<ul>\n<li><strong>02</strong> \u2014 Validating accuracy against the analytical great circle solution</li>\n<li><strong>03</strong> \u2014 Real-world multipathing with the Australian velocity model</li>\n<li><strong>04</strong> \u2014 Frechet sensitivity kernels and the Jacobian matrix</li>\n<li><strong>05</strong> \u2014 Parallel execution for multi-source problems</li>\n</ul></span>"
+          }
+        }
+      ],
+      "console": []
+    },
+    {
+      "id": "Hbol",
+      "code_hash": "1d0db38904205bec4d6f6f6a1f6cec3e",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "vblA",
+      "code_hash": "f00cd2f3e6529d78c20f4e27e5707948",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "lEQa",
+      "code_hash": "6340853bc6d2e48c9934128990df9cdd",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Xref",
+      "code_hash": "623ea00b14e72f4e68c8fab8081a8ae9",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "BYtC",
+      "code_hash": "b86a433e6f993aec9a0aca6585d4d556",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Kclp",
+      "code_hash": "6c36c6a19b2073b16f2cd948744d276b",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "Hstk",
+      "code_hash": "266ec16aa0f718a666dfb56eeefadc63",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "iLit",
+      "code_hash": "5a90b214d559697ff07efeed49506773",
+      "outputs": [],
+      "console": []
+    },
+    {
+      "id": "ROlb",
+      "code_hash": "c4898dfa708e26e3fd471a8baee63e4c",
+      "outputs": [],
+      "console": []
+    }
+  ]
+}

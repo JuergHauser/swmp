@@ -33,13 +33,15 @@ from .data import (
     write_config_file,
 )
 
+# Visualisation (new file-free implementation)
+from .plotting import Visualisation
+
 # Legacy classes (for backward compatibility)
 from ._pyswmp import (
     VelocityModel,
     TravelTimeData,
     VelocityModelGenerator,
     ObservationGenerator,
-    Visualisation,
 )
 
 __all__ = [
