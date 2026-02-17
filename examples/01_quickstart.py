@@ -21,11 +21,10 @@ def _(mo):
 
     This notebook walks through the basic workflow:
 
-    1. Create a velocity model
+    1. Create a velocity model with anomalies
     2. Define sources and receivers
-    3. Configure ray tracing options
-    4. Run forward modelling
-    5. Inspect and visualise results
+    3. Run forward modelling
+    4. Inspect multipathing results
 
     All using the **file-free API** — no disk I/O required.
     """)
@@ -35,8 +34,9 @@ def _(mo):
 @app.cell
 def _():
     import numpy as np
+    import matplotlib.pyplot as plt
     import pyswmp
-    return np, pyswmp
+    return np, plt, pyswmp
 
 
 @app.cell(hide_code=True)
@@ -44,9 +44,11 @@ def _(mo):
     mo.md(r"""
     ## 1. Create a velocity model
 
-    `create_constant_velocity_model()` builds a 2D grid with uniform velocity.
-    The model covers a region of Australia at 0.5° spacing with a velocity of
-    3.5 km/s (typical Rayleigh wave group velocity at ~20 s period).
+    Start from a constant background (3.5 km/s — typical Rayleigh wave group
+    velocity at ~20 s period) and add strong Gaussian anomalies. A large slow
+    anomaly causes wavefront triplications that produce **multiple arrivals**
+    at individual receivers — the multipathing phenomenon that gives the library
+    its name.
     """)
     return
 
@@ -59,9 +61,18 @@ def _(pyswmp):
         dx=0.5, dy=0.5,
         velocity=3.5,
     )
+
+    # Large slow anomaly — strong enough to tripliccate the wavefront
+    model = pyswmp.add_gaussian_anomaly(
+        model, cx=130.0, cy=-30.0, sigma_x=5.0, sigma_y=5.0, amplitude=-1.5,
+    )
+    # Second slow anomaly in the south-east
+    model = pyswmp.add_gaussian_anomaly(
+        model, cx=140.0, cy=-38.0, sigma_x=4.0, sigma_y=3.0, amplitude=-1.0,
+    )
+
     print(model)
-    print(f"Domain: ({model.x0}, {model.y0}) to ({model.x1}, {model.y1})")
-    print(f"Velocity: {model.velocities.mean():.2f} km/s")
+    print(f"Velocity range: {model.velocities.min():.2f} – {model.velocities.max():.2f} km/s")
     return (model,)
 
 
@@ -71,26 +82,24 @@ def _(mo):
     ## 2. Define sources and receivers
 
     Sources and receivers are specified as `(longitude, latitude)` arrays.
-    `source_type=1` indicates point sources.
+    `source_type=1` indicates point sources. A grid of receivers covers
+    the domain so we can observe multipathing across the model.
     """)
     return
 
 
 @app.cell
 def _(np, pyswmp):
-    # Single point source in central Australia
     sources = pyswmp.Sources(
-        positions=np.array([[135.0, -25.0]]),
+        positions=np.array([[145.0, -18.0]]),
         source_type=1,
     )
     print(sources)
 
     # Grid of receivers across Australia
-    x_rec = np.linspace(115, 155, 20)
-    y_rec = np.linspace(-40, -15, 15)
-    xx, yy = np.meshgrid(x_rec, y_rec)
+    _xx, _yy = np.meshgrid(np.linspace(115, 155, 20), np.linspace(-40, -15, 15))
     receivers = pyswmp.Receivers(
-        positions=np.column_stack([xx.ravel(), yy.ravel()])
+        positions=np.column_stack([_xx.ravel(), _yy.ravel()])
     )
     print(receivers)
     return receivers, sources
@@ -99,81 +108,43 @@ def _(np, pyswmp):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 3. Configure ray tracing options
+    ## 3. Run forward modelling
 
-    `TrackerOptions` controls the numerical solver, coordinate system, and
-    output extraction. Key parameters:
-
-    - `coordinate_system=2` — spherical coordinates (longitude/latitude)
-    - `dt` — ODE time step size
-    - `max_iterations` — maximum wavefront propagation steps
-    - `extract_raypaths=True` — store individual ray paths for plotting
+    Create a `WaveFrontTracker` with the model and options, then call
+    `forward(sources, receivers)`.
     """)
     return
 
 
 @app.cell
-def _(pyswmp):
+def _(model, pyswmp, receivers, sources):
     opts = pyswmp.TrackerOptions(
         coordinate_system=2,
         dt=5.0,
         max_iterations=500,
         extract_raypaths=True,
     )
-    return (opts,)
 
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ## 4. Run forward modelling
-
-    Create a `WaveFrontTracker` with the model and options, then call
-    `forward(sources, receivers)`. The result contains travel times, azimuths,
-    arrival numbers, and (optionally) ray paths.
-    """)
-    return
-
-
-@app.cell
-def _(model, opts, pyswmp, receivers, sources):
     tracker = pyswmp.WaveFrontTracker(model, opts)
     result = tracker.forward(sources, receivers)
 
     print(f"Arrivals:          {len(result.travel_times)}")
     print(f"Raypaths:          {len(result.raypaths)}")
     print(f"Travel time range: {result.travel_times.min():.1f} – {result.travel_times.max():.1f} s")
-    return (result,)
+    return opts, result, tracker
 
 
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ## 5. Inspect results
+    ## 4. Inspect results
 
-    ### DataFrame view
+    ### Ray paths overlaid on the velocity model
 
-    `to_dataframe()` converts results to a pandas DataFrame with columns:
-    `source`, `receiver`, `arrival`, `time`, `azimuth`, `spreading`.
-    """)
-    return
-
-
-@app.cell
-def _(result):
-    df = result.to_dataframe()
-    print(f"Shape: {df.shape}")
-    df.head(10)
-    return (df,)
-
-
-@app.cell(hide_code=True)
-def _(mo):
-    mo.md(r"""
-    ### Ray path visualisation
-
-    The `Visualisation` class plots ray paths overlaid on the velocity model.
-    Each source is coloured differently.
+    The `Visualisation` class plots the B-spline-interpolated velocity field
+    (matching what the ray tracer sees internally) with coastlines via cartopy.
+    Rays bend around the slow anomaly — some receivers see multiple arrivals
+    from different directions.
     """)
     return
 
@@ -189,31 +160,38 @@ def _(model, pyswmp, result):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
-    ### Travel time distribution
+    ### Multipathing statistics
 
-    For a constant velocity model and a single source, travel times
-    should be proportional to source–receiver distance.
+    How many arrivals does each receiver observe? In a homogeneous model
+    every receiver gets exactly one. With strong velocity anomalies,
+    wavefront triplications produce 2 or 3 arrivals at some receivers.
     """)
     return
 
 
 @app.cell
-def _(np, result):
-    import matplotlib.pyplot as plt
+def _(np, plt, result):
+    _unique_recs, _counts = np.unique(result.receiver_ids, return_counts=True)
+    _multi = (_counts > 1).sum()
 
-    # First-arrival travel times per receiver
-    _unique_recs = np.unique(result.receiver_ids)
-    _first_times = []
-    for _rid in _unique_recs:
-        _mask = (result.receiver_ids == _rid) & (result.arrival_numbers == 1)
-        if _mask.any():
-            _first_times.append(result.travel_times[_mask][0])
+    _fig, (_ax1, _ax2) = plt.subplots(1, 2, figsize=(13, 5))
 
-    _fig, _ax = plt.subplots(figsize=(7, 4))
-    _ax.hist(_first_times, bins=20, color="steelblue", edgecolor="black", alpha=0.7)
-    _ax.set(xlabel="First-arrival travel time (s)", ylabel="Count",
-            title="Travel time distribution")
-    _ax.grid(True, alpha=0.3, axis="y")
+    # Arrival count histogram
+    _ax1.hist(_counts, bins=range(1, _counts.max() + 2), align="left",
+              color="steelblue", edgecolor="black", alpha=0.7)
+    _ax1.set(xlabel="Number of arrivals", ylabel="Number of receivers",
+             title="Arrivals per receiver")
+    _ax1.grid(True, alpha=0.3, axis="y")
+    _ax1.annotate(f"{_multi}/{len(_unique_recs)} receivers\nwith multipathing",
+                  xy=(0.95, 0.95), xycoords="axes fraction", ha="right", va="top",
+                  fontsize=11, bbox=dict(boxstyle="round", fc="lightyellow", alpha=0.8))
+
+    # Travel time histogram (all arrivals)
+    _ax2.hist(result.travel_times, bins=30, color="coral", edgecolor="black", alpha=0.7)
+    _ax2.set(xlabel="Travel time (s)", ylabel="Count",
+             title="Travel time distribution (all arrivals)")
+    _ax2.grid(True, alpha=0.3, axis="y")
+
     plt.tight_layout()
     _fig
     return
@@ -224,10 +202,11 @@ def _(mo):
     mo.md(r"""
     ## Summary
 
-    The complete file-free workflow in four lines:
+    The complete file-free workflow:
 
     ```python
     model   = pyswmp.create_constant_velocity_model(...)
+    model   = pyswmp.add_gaussian_anomaly(model, cx=..., cy=..., ...)
     opts    = pyswmp.TrackerOptions(coordinate_system=2, extract_raypaths=True)
     tracker = pyswmp.WaveFrontTracker(model, opts)
     result  = tracker.forward(sources, receivers)

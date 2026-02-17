@@ -87,7 +87,16 @@ def _(np, pyswmp):
         positions=np.column_stack([lon_grid.ravel(), lat_grid.ravel()])
     )
     print(f"{sources}\n{receivers}")
-    return lat_grid, lat_rec, lon_grid, lon_rec, receivers, source_lat, source_lon, sources
+    return (
+        lat_grid,
+        lat_rec,
+        lon_grid,
+        lon_rec,
+        receivers,
+        source_lat,
+        source_lon,
+        sources,
+    )
 
 
 @app.cell(hide_code=True)
@@ -120,7 +129,7 @@ def _(np, receivers, source_lat, source_lon):
 
     print(f"Distance range: {distances.min():.0f} – {distances.max():.0f} km")
     print(f"Travel time range: {analytical_times.min():.0f} – {analytical_times.max():.0f} s")
-    return analytical_times, distances, great_circle_distance
+    return analytical_times, distances
 
 
 @app.cell(hide_code=True)
@@ -296,8 +305,17 @@ def _(mo):
 
 
 @app.cell
-def _(analytical_times, distances, lat_grid, lat_rec, lon_grid, lon_rec,
-      numerical_times, plt, source_lat, source_lon, valid):
+def _(
+    analytical_times,
+    distances,
+    lat_grid,
+    lon_grid,
+    numerical_times,
+    plt,
+    source_lat,
+    source_lon,
+    valid,
+):
     _fig, (_ax1, _ax2) = plt.subplots(1, 2, figsize=(14, 5))
 
     _ax1.scatter(lon_grid.ravel(), lat_grid.ravel(), c="blue", s=10, alpha=0.3, label="Receivers")
@@ -321,7 +339,16 @@ def _(analytical_times, distances, lat_grid, lat_rec, lon_grid, lon_rec,
 
 
 @app.cell
-def _(analytical_times, lat_grid, lon_grid, lon_rec, lat_rec, plt, source_lat, source_lon):
+def _(
+    analytical_times,
+    lat_grid,
+    lat_rec,
+    lon_grid,
+    lon_rec,
+    plt,
+    source_lat,
+    source_lon,
+):
     _times_grid = analytical_times.reshape(lon_grid.shape)
 
     _fig, _ax = plt.subplots(figsize=(12, 6))
@@ -352,6 +379,11 @@ def _(mo):
 
     Try varying `dt`, `ode_solver`, or grid resolution to observe convergence behaviour.
     """)
+    return
+
+
+@app.cell
+def _():
     return
 
 

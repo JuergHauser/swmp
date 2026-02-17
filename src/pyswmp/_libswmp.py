@@ -256,6 +256,34 @@ class LibSWMP:
         lib.set_do_frechet.restype = None
 
         # ================================================================
+        # Model Resampling (B-spline interpolation)
+        # ================================================================
+        lib.resample_model.argtypes = [
+            ctypes.c_int32,  # nry (upsampling factor in y)
+            ctypes.c_int32,  # nrx (upsampling factor in x)
+        ]
+        lib.resample_model.restype = None
+
+        lib.get_resampled_model_meta_data.argtypes = [
+            ctypes.POINTER(ctypes.c_float),   # x0
+            ctypes.POINTER(ctypes.c_float),   # y0
+            ctypes.POINTER(ctypes.c_int32),   # nx
+            ctypes.POINTER(ctypes.c_int32),   # ny
+            ctypes.POINTER(ctypes.c_float),   # dx
+            ctypes.POINTER(ctypes.c_float),   # dy
+            ctypes.POINTER(ctypes.c_int32),   # cn
+        ]
+        lib.get_resampled_model_meta_data.restype = None
+
+        lib.get_resampled_model_vector.argtypes = [
+            ctypes.POINTER(ctypes.c_float),          # val (out)
+            ctypes.POINTER(ctypes.c_int32),          # nx  (in, by-ref)
+            ctypes.POINTER(ctypes.c_int32),          # ny  (in, by-ref)
+            ctypes.POINTER(ctypes.c_int32),          # cn  (in, by-ref)
+        ]
+        lib.get_resampled_model_vector.restype = None
+
+        # ================================================================
         # Jacobian (Frechet Matrix) - In-Memory Extraction
         # ================================================================
         lib.get_sparse_jacobian_size.argtypes = [
@@ -428,19 +456,27 @@ class LibSWMP:
         )
         self.check_error(status)
 
-        # Get positions (flattened)
+        # Get positions — Fortran writes positions(total_points, 2) in column-major
+        # order: all x-coordinates first, then all y-coordinates
         positions = np.zeros(total_pts.value * 2, dtype=np.float32)
         status = self._lib.get_raypath_positions_from_memory(
             positions, total_pts.value
         )
         self.check_error(status)
 
+        # Reshape from Fortran column-major: first N floats = x, next N = y
+        all_x = positions[:total_pts.value]
+        all_y = positions[total_pts.value:]
+
         # Reconstruct raypaths
         raypaths = []
         pos_idx = 0
         for i in range(n_paths.value):
             n = npts[i]
-            path = positions[pos_idx*2:(pos_idx+n)*2].reshape(n, 2)
+            path = np.column_stack([
+                all_x[pos_idx:pos_idx + n],
+                all_y[pos_idx:pos_idx + n],
+            ])
             raypaths.append({
                 'source': source_id,
                 'receiver': int(receivers[i]),
@@ -669,8 +705,9 @@ class LibSWMP:
         else:
             padded = velocities
 
-        # Flatten velocity array in Fortran order (column-major)
-        vel_flat = np.asfortranarray(padded).ravel(order='F')
+        # Flatten velocity array in C order (row-major) to match velnod2id:
+        # id = (i-1)*(ny+2*cn) + j, where i=x-index (slow), j=y-index (fast)
+        vel_flat = np.ascontiguousarray(padded, dtype=np.float32).ravel()
 
         # Set complete model with metadata
         self._lib.set_velocity_model_from_memory(
@@ -775,23 +812,25 @@ class LibSWMP:
             ctypes.byref(cn)
         )
 
-        # Get velocity data
-        total_size = (nx.value + 2 * cn.value) * (ny.value + 2 * cn.value)
+        # Get velocity data — get_model_vector(val, nx, ny, cn) returns
+        # flattened values in velnod2id order: id = (i-1)*(ny+2*cn) + j
+        # which is C-order for shape (nx+2*cn, ny+2*cn)
+        full_nx = nx.value + 2 * cn.value
+        full_ny = ny.value + 2 * cn.value
+        total_size = full_nx * full_ny
         vel_flat = np.empty(total_size, dtype=np.float32)
 
         self._lib.get_model_vector(
             vel_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
-            ctypes.byref(x0),
-            ctypes.byref(y0),
             ctypes.byref(nx),
             ctypes.byref(ny),
-            ctypes.byref(dx),
-            ctypes.byref(dy),
             ctypes.byref(cn)
         )
 
-        # Reshape to 2D (without cushion nodes for now)
-        velocities = vel_flat[:nx.value * ny.value].reshape((nx.value, ny.value), order='F')
+        # Reshape full grid (C-order matches velnod2id), then trim cushion
+        vel_full = vel_flat.reshape((full_nx, full_ny))
+        c = cn.value
+        velocities = vel_full[c:c + nx.value, c:c + ny.value].copy()
 
         return VelocityModel2D(
             velocities=velocities,
@@ -800,4 +839,65 @@ class LibSWMP:
             dx=dx.value,
             dy=dy.value,
             cushion_nodes=cn.value
+        )
+
+    def resample_model(self, factor_x=4, factor_y=4):
+        """Resample the loaded velocity model using Fortran B-spline interpolation.
+
+        Evaluates the cubic B-spline on a finer grid, producing the velocity
+        field exactly as seen by the ray tracer.  The current velocity model
+        must already be loaded via ``set_velocity_model``.
+
+        Args:
+            factor_x: Upsampling factor in x direction (default 4)
+            factor_y: Upsampling factor in y direction (default 4)
+
+        Returns:
+            VelocityModel2D with the interpolated velocity field
+        """
+        from .data import VelocityModel2D
+
+        self._lib.resample_model(ctypes.c_int32(factor_y), ctypes.c_int32(factor_x))
+
+        # Retrieve resampled metadata
+        x0 = ctypes.c_float()
+        y0 = ctypes.c_float()
+        nx = ctypes.c_int32()
+        ny = ctypes.c_int32()
+        dx = ctypes.c_float()
+        dy = ctypes.c_float()
+        cn = ctypes.c_int32()
+
+        self._lib.get_resampled_model_meta_data(
+            ctypes.byref(x0), ctypes.byref(y0),
+            ctypes.byref(nx), ctypes.byref(ny),
+            ctypes.byref(dx), ctypes.byref(dy),
+            ctypes.byref(cn),
+        )
+
+        # Retrieve resampled values (velnod2id / C-order)
+        full_nx = nx.value + 2 * cn.value
+        full_ny = ny.value + 2 * cn.value
+        total_size = full_nx * full_ny
+        vel_flat = np.empty(total_size, dtype=np.float32)
+
+        self._lib.get_resampled_model_vector(
+            vel_flat.ctypes.data_as(ctypes.POINTER(ctypes.c_float)),
+            ctypes.byref(nx),
+            ctypes.byref(ny),
+            ctypes.byref(cn),
+        )
+
+        # Reshape (C-order matches velnod2id), trim cushion
+        vel_full = vel_flat.reshape((full_nx, full_ny))
+        c = cn.value
+        velocities = vel_full[c:c + nx.value, c:c + ny.value].copy()
+
+        return VelocityModel2D(
+            velocities=velocities,
+            x0=x0.value,
+            y0=y0.value,
+            dx=dx.value,
+            dy=dy.value,
+            cushion_nodes=cn.value,
         )

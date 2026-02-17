@@ -83,7 +83,7 @@ def _(np, pyswmp):
 
     print(f"Sources:   {sources.n_sources}")
     print(f"Receivers: {receivers.n_receivers}")
-    return model, opts, receivers, sources, tracker
+    return receivers, sources, tracker
 
 
 @app.cell(hide_code=True)
@@ -96,9 +96,9 @@ def _(mo):
 
 @app.cell
 def _(receivers, sources, time, tracker):
-    _t0 = time.time()
+    t0_seq = time.time()
     result_seq = tracker.forward(sources, receivers)
-    t_seq = time.time() - _t0
+    t_seq = time.time() - t0_seq
 
     print(f"Sequential: {len(result_seq.travel_times)} arrivals in {t_seq:.3f}s")
     return result_seq, t_seq
@@ -118,10 +118,10 @@ def _(mo):
 
 @app.cell
 def _(ProcessPoolExecutor, receivers, sources, time, tracker):
-    _t0 = time.time()
-    with ProcessPoolExecutor(max_workers=4) as _pool:
-        result_par = tracker.forward(sources, receivers, pool=_pool)
-    t_par = time.time() - _t0
+    t0_par = time.time()
+    with ProcessPoolExecutor(max_workers=4) as pool:
+        result_par = tracker.forward(sources, receivers, pool=pool)
+    t_par = time.time() - t0_par
 
     print(f"Parallel (4 workers): {len(result_par.travel_times)} arrivals in {t_par:.3f}s")
     return result_par, t_par
@@ -138,26 +138,26 @@ def _(mo):
 @app.cell
 def _(np, result_par, result_seq, t_par, t_seq):
     # Sort both result sets for comparison
-    _seq_order = np.lexsort((result_seq.arrival_numbers, result_seq.receiver_ids,
-                             result_seq.source_ids))
-    _par_order = np.lexsort((result_par.arrival_numbers, result_par.receiver_ids,
-                             result_par.source_ids))
+    seq_order = np.lexsort((result_seq.arrival_numbers, result_seq.receiver_ids,
+                            result_seq.source_ids))
+    par_order = np.lexsort((result_par.arrival_numbers, result_par.receiver_ids,
+                            result_par.source_ids))
 
-    _times_match = np.allclose(
-        result_seq.travel_times[_seq_order],
-        result_par.travel_times[_par_order],
+    times_match = np.allclose(
+        result_seq.travel_times[seq_order],
+        result_par.travel_times[par_order],
         atol=1e-6,
     )
 
-    _speedup = t_seq / t_par if t_par > 0 else float("inf")
+    speedup = t_seq / t_par if t_par > 0 else float("inf")
 
     print("=" * 50)
     print("Comparison")
     print("=" * 50)
     print(f"Sequential:    {t_seq:.3f}s  ({len(result_seq.travel_times)} arrivals)")
     print(f"Parallel (4):  {t_par:.3f}s  ({len(result_par.travel_times)} arrivals)")
-    print(f"Speedup:       {_speedup:.2f}x")
-    print(f"Results match: {_times_match}")
+    print(f"Speedup:       {speedup:.2f}x")
+    print(f"Results match: {times_match}")
     print("=" * 50)
     return
 

@@ -27,6 +27,7 @@ from .data import (
     Receivers,
     create_constant_velocity_model,
     create_gradient_velocity_model,
+    add_gaussian_anomaly,
     write_velocity_model_file,
     write_sources_file,
     write_receivers_file,
@@ -59,6 +60,7 @@ __all__ = [
     "Receivers",
     "create_constant_velocity_model",
     "create_gradient_velocity_model",
+    "add_gaussian_anomaly",
     # Legacy classes (still useful)
     "VelocityModelGenerator",
     "ObservationGenerator",

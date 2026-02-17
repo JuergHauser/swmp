@@ -85,7 +85,14 @@
     {
       "id": "Hbol",
       "code_hash": "1d0db38904205bec4d6f6f6a1f6cec3e",
-      "outputs": [],
+      "outputs": [
+        {
+          "type": "data",
+          "data": {
+            "text/plain": ""
+          }
+        }
+      ],
       "console": []
     },
     {
@@ -102,13 +109,13 @@
     },
     {
       "id": "Xref",
-      "code_hash": "a0fcf775da7f8b30f64efde7291e0b06",
+      "code_hash": "2ed5e1a6f17997121b028acbcd4632e4",
       "outputs": [],
       "console": []
     },
     {
       "id": "BYtC",
-      "code_hash": "1c31d4cf46e60c56769635f332446251",
+      "code_hash": "5d9dfe2b2475caa7f6bd7b390153645e",
       "outputs": [],
       "console": []
     },

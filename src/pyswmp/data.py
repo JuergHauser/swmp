@@ -92,6 +92,24 @@ class VelocityModel2D:
         """Model extent as (x0, x1, y0, y1)."""
         return (self.x0, self.x1, self.y0, self.y1)
 
+    def interpolate(self, factor_x=4, factor_y=4):
+        """Resample onto a finer grid using the Fortran cubic B-spline.
+
+        Produces the velocity field exactly as the ray tracer sees it.
+
+        Args:
+            factor_x: Upsampling factor in x (default 4)
+            factor_y: Upsampling factor in y (default 4)
+
+        Returns:
+            New VelocityModel2D on the finer grid
+        """
+        from ._libswmp import LibSWMP
+
+        lib = LibSWMP()
+        lib.set_velocity_model(self)
+        return lib.resample_model(factor_x, factor_y)
+
     def __repr__(self) -> str:
         """String representation."""
         return (
@@ -412,6 +430,43 @@ def create_gradient_velocity_model(
 
     velocities = v0 + gradient_x * (xx - x0) + gradient_y * (yy - y0)
     return VelocityModel2D(velocities.astype(np.float32), x0, y0, dx, dy, cushion_nodes)
+
+
+def add_gaussian_anomaly(
+    model: VelocityModel2D,
+    cx: float,
+    cy: float,
+    sigma_x: float,
+    sigma_y: float,
+    amplitude: float,
+) -> VelocityModel2D:
+    """Add a Gaussian velocity anomaly to an existing model.
+
+    The anomaly is:  amplitude * exp(-((x-cx)^2/(2*sx^2) + (y-cy)^2/(2*sy^2)))
+
+    Args:
+        model: Base velocity model
+        cx, cy: Centre of the anomaly (in model coordinates)
+        sigma_x, sigma_y: Standard deviations (width) in x and y
+        amplitude: Peak velocity perturbation (positive = faster, negative = slower)
+
+    Returns:
+        New VelocityModel2D with the anomaly added
+
+    Example:
+        >>> model = create_constant_velocity_model(100, 80, 110, -45, 0.5, 0.5, 3.5)
+        >>> model = add_gaussian_anomaly(model, cx=130.0, cy=-30.0,
+        ...     sigma_x=3.0, sigma_y=3.0, amplitude=-0.5)
+    """
+    x = np.arange(model.nx) * model.dx + model.x0
+    y = np.arange(model.ny) * model.dy + model.y0
+    xx, yy = np.meshgrid(x, y, indexing='ij')
+
+    anomaly = amplitude * np.exp(
+        -((xx - cx) ** 2 / (2 * sigma_x ** 2) + (yy - cy) ** 2 / (2 * sigma_y ** 2))
+    )
+    velocities = model.velocities + anomaly.astype(np.float32)
+    return VelocityModel2D(velocities, model.x0, model.y0, model.dx, model.dy, model.cushion_nodes)
 
 
 def write_velocity_model_file(model: VelocityModel2D, filename: str):
